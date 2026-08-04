@@ -18,6 +18,18 @@ public class AccountRepo {
 		this.jdbcTemplate = jdbcTemplate;
 	}
 
+	public Optional<Accounts> findById(Long accountId) {
+		String sql = """
+				SELECT account_id, account_number, account_holder_name, bank_name, balance, currency, account_status, created_at
+				FROM accounts
+				WHERE account_id = ?
+				""";
+
+		return jdbcTemplate.query(sql, accountRowMapper(), accountId)
+				.stream()
+				.findFirst();
+	}
+
 	public Optional<Accounts> findByAccountNumber(String accountNumber) {
 		String sql = """
 				SELECT account_id, account_number, account_holder_name, bank_name, balance, currency, account_status, created_at
