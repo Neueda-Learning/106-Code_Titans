@@ -1,12 +1,16 @@
 package com.neueda.__Code_Titans.service;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.neueda.__Code_Titans.entity.Accounts;
+import com.neueda.__Code_Titans.entity.PaymentHistory;
 import com.neueda.__Code_Titans.entity.Payments;
 import com.neueda.__Code_Titans.repo.AccountRepo;
 import com.neueda.__Code_Titans.repo.PaymentRepo;
@@ -16,13 +20,15 @@ public class PaymentService {
 
     private final PaymentRepo paymentRepo;
     private final AccountRepo accountRepo;
+    private final AuditService auditService;
 
-    // Supported currencies
-    private static final String[] SUPPORTED_CURRENCIES = {"USD", "EUR", "GBP", "INR"};
+    private static final Set<String> SUPPORTED_CURRENCIES = Set.of("USD", "EUR", "GBP", "INR");
+    private static final Set<String> SUPPORTED_STATUSES = Set.of("CREATED", "VALIDATED", "SENT", "COMPLETED", "FAILED");
 
-    public PaymentService(PaymentRepo paymentRepo, AccountRepo accountRepo) {
+    public PaymentService(PaymentRepo paymentRepo, AccountRepo accountRepo, AuditService auditService) {
         this.paymentRepo = paymentRepo;
         this.accountRepo = accountRepo;
+        this.auditService = auditService;
     }
 
     /**
@@ -39,23 +45,21 @@ public class PaymentService {
      * @param idempotencyKey Unique idempotency key
      * @return Created payment
      */
+    @Transactional
     public Payments createPayment(Long sourceAccountId, Long destinationAccountId,
-                                   BigDecimal amount, String currency, String reference,
-                                   String idempotencyKey) {
+            BigDecimal amount, String currency, String reference,
+            String idempotencyKey) {
 
         Payments payment = new Payments();
         payment.setSourceAccountId(sourceAccountId);
         payment.setDestinationAccountId(destinationAccountId);
         payment.setAmount(amount);
-        payment.setCurrency(currency);
+        payment.setCurrency(normalizeCurrency(currency));
         payment.setReference(reference);
         payment.setIdempotencyKey(idempotencyKey);
-        payment.setCreatedAt(LocalDateTime.now());
-        payment.setUpdatedAt(LocalDateTime.now());
 
-        // Perform validations
         ValidationResult validationResult = validatePayment(sourceAccountId, destinationAccountId,
-                amount, currency, idempotencyKey);
+                amount, payment.getCurrency(), idempotencyKey);
 
         if (!validationResult.isValid()) {
             payment.setStatus("FAILED");
@@ -65,8 +69,10 @@ public class PaymentService {
             payment.setStatus("CREATED");
         }
 
-        // Save and return
-        return paymentRepo.save(payment);
+        Payments savedPayment = paymentRepo.save(payment);
+        auditService.recordStatusChange(savedPayment.getPaymentId(), null, savedPayment.getStatus(), "system",
+                "Payment created");
+        return savedPayment;
     }
 
     /**
@@ -79,7 +85,7 @@ public class PaymentService {
     /**
      * Retrieves all payments
      */
-    public Iterable<Payments> getAllPayments() {
+    public List<Payments> getAllPayments() {
         return paymentRepo.findAll();
     }
 
@@ -93,15 +99,39 @@ public class PaymentService {
     /**
      * Updates payment status
      */
-    public Payments updatePaymentStatus(Long paymentId, String newStatus) {
+    @Transactional
+    public Optional<Payments> updatePaymentStatus(Long paymentId, String newStatus, String changedBy, String remarks) {
         Optional<Payments> optionalPayment = paymentRepo.findById(paymentId);
-        if (optionalPayment.isPresent()) {
-            Payments payment = optionalPayment.get();
-            payment.setStatus(newStatus);
-            payment.setUpdatedAt(LocalDateTime.now());
-            return paymentRepo.save(payment);
+        if (optionalPayment.isEmpty()) {
+            return Optional.empty();
         }
-        return null;
+
+        Payments payment = optionalPayment.get();
+        String normalizedNewStatus = normalizeStatus(newStatus);
+        String currentStatus = normalizeStatus(payment.getStatus());
+
+        if (!SUPPORTED_STATUSES.contains(normalizedNewStatus)) {
+            throw new IllegalArgumentException("Unsupported status: " + newStatus);
+        }
+
+        if (!isTransitionAllowed(currentStatus, normalizedNewStatus)) {
+            throw new IllegalArgumentException(
+                    "Invalid status transition: " + currentStatus + " -> " + normalizedNewStatus);
+        }
+
+        payment.setStatus(normalizedNewStatus);
+        Payments updatedPayment = paymentRepo.save(payment);
+        auditService.recordStatusChange(paymentId, currentStatus, normalizedNewStatus, changedBy, remarks);
+
+        return Optional.of(updatedPayment);
+    }
+
+    public Optional<Payments> updatePaymentStatus(Long paymentId, String newStatus) {
+        return updatePaymentStatus(paymentId, newStatus, "system", null);
+    }
+
+    public List<PaymentHistory> getPaymentHistory(Long paymentId) {
+        return auditService.getPaymentHistory(paymentId);
     }
 
     /**
@@ -165,7 +195,7 @@ public class PaymentService {
         }
 
         // Rule 7: Duplicate payment detection using idempotency key
-        if (idempotencyKey != null && !idempotencyKey.isEmpty()) {
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             Optional<Payments> existingPayment = paymentRepo.findByIdempotencyKey(idempotencyKey);
             if (existingPayment.isPresent()) {
                 return new ValidationResult(false, "DUPLICATE_PAYMENT",
@@ -181,15 +211,33 @@ public class PaymentService {
      * Checks if the given currency is supported
      */
     private boolean isCurrencySupported(String currency) {
-        if (currency == null || currency.isEmpty()) {
-            return false;
+        return currency != null && SUPPORTED_CURRENCIES.contains(currency);
+    }
+
+    private boolean isTransitionAllowed(String currentStatus, String newStatus) {
+        if (currentStatus == null || currentStatus.isBlank()) {
+            return "CREATED".equals(newStatus);
         }
-        for (String supported : SUPPORTED_CURRENCIES) {
-            if (supported.equals(currency)) {
-                return true;
-            }
+
+        if (currentStatus.equals(newStatus)) {
+            return true;
         }
-        return false;
+
+        return switch (currentStatus) {
+            case "CREATED" -> "VALIDATED".equals(newStatus) || "FAILED".equals(newStatus);
+            case "VALIDATED" -> "SENT".equals(newStatus) || "FAILED".equals(newStatus);
+            case "SENT" -> "COMPLETED".equals(newStatus) || "FAILED".equals(newStatus);
+            case "COMPLETED", "FAILED" -> false;
+            default -> false;
+        };
+    }
+
+    private String normalizeStatus(String status) {
+        return status == null ? "" : status.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String normalizeCurrency(String currency) {
+        return currency == null ? null : currency.trim().toUpperCase(Locale.ROOT);
     }
 
     /**
