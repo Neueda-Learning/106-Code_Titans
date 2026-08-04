@@ -1,5 +1,6 @@
 package com.neueda.__Code_Titans.repo;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -8,6 +9,8 @@ import java.util.Optional;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import com.neueda.__Code_Titans.entity.PaymentHistory;
@@ -22,6 +25,31 @@ public class PaymentHistoryRepo {
     }
 
     private final RowMapper<PaymentHistory> paymentHistoryRowMapper = this::mapRow;
+
+    public PaymentHistory save(PaymentHistory paymentHistory) {
+        String sql = """
+                INSERT INTO payment_history (payment_id, old_status, new_status, changed_at, changed_by, remarks)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """;
+
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql, new String[] { "history_id" });
+            ps.setLong(1, paymentHistory.getPaymentId());
+            ps.setString(2, paymentHistory.getOldStatus());
+            ps.setString(3, paymentHistory.getNewStatus());
+            ps.setObject(4, paymentHistory.getChangedAt());
+            ps.setString(5, paymentHistory.getChangedBy());
+            ps.setString(6, paymentHistory.getRemarks());
+            return ps;
+        }, keyHolder);
+
+        Number generatedId = keyHolder.getKey();
+        if (generatedId != null) {
+            paymentHistory.setHistoryId(generatedId.longValue());
+        }
+        return paymentHistory;
+    }
 
     public List<PaymentHistory> findByPaymentIdOrderByChangedAtAsc(Long paymentId) {
         String sql = """
