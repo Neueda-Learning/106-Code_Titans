@@ -21,6 +21,10 @@
           <p class="hero-description">Monitor live transactions, find records quickly, and drill into payment lifecycle details.</p>
         </div>
         <div class="hero-actions">
+          <button id="toggleCreatePaymentBtn" type="button" class="btn btn-success" aria-controls="createPaymentPanel" aria-expanded="false">
+            <i class="fas fa-circle-plus" aria-hidden="true"></i>
+            Create Payment
+          </button>
           <a href="payment_details.html" class="btn btn-secondary" aria-label="Open payment details page">
             <i class="fas fa-receipt" aria-hidden="true"></i>
             Payment Details
@@ -82,6 +86,68 @@
 
       <section class="payments-meta" aria-live="polite" aria-atomic="true">
         <p id="paymentsCount">0 payments found</p>
+      </section>
+
+      <section id="createPaymentPanel" class="create-payment-panel card" hidden>
+        <div class="create-payment-header">
+          <div>
+            <p class="eyebrow eyebrow-dark">New Transaction</p>
+            <h2>Create Payment</h2>
+            <p>Add a new transaction here. After saving, the payment will be available in Payments and Payment Details.</p>
+          </div>
+          <button id="closeCreatePaymentBtn" type="button" class="panel-close-btn" aria-label="Close create payment form">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <form id="createPaymentForm" class="create-payment-form" novalidate>
+          <div class="form-field">
+            <label for="sourceAccountId">Sender Account</label>
+            <select id="sourceAccountId" name="sourceAccountId" required>
+              <option value="">Select sender account</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="destinationAccountId">Receiver Account</label>
+            <select id="destinationAccountId" name="destinationAccountId" required>
+              <option value="">Select receiver account</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="amount">Amount</label>
+            <input id="amount" name="amount" type="number" min="0.01" step="0.01" placeholder="1500.00" required>
+          </div>
+          <div class="form-field">
+            <label for="currency">Currency</label>
+            <select id="currency" name="currency" required>
+              <option value="">Select currency</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="AED">AED</option>
+              <option value="INR">INR</option>
+              <option value="SGD">SGD</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="reference">Reference</label>
+            <input id="reference" name="reference" type="text" placeholder="Invoice settlement" required>
+          </div>
+
+          <div class="form-field">
+            <label for="idempotencyKey">Idempotency Key</label>
+            <input id="idempotencyKey" name="idempotencyKey" type="text" placeholder="Unique request key">
+          </div>
+
+          <div class="form-actions">
+            <p id="createPaymentMessage" class="form-message" hidden></p>
+            <button id="createPaymentSubmitBtn" type="submit" class="create-btn">
+              <i class="fas fa-plus" aria-hidden="true"></i>
+              Create Payment
+            </button>
+          </div>
+        </form>
       </section>
 
       <section id="paymentsLoading" class="card state-block" aria-live="polite">
