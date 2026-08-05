@@ -410,6 +410,17 @@ body {
 	border: 1px solid rgba(239, 68, 68, 0.22);
 }
 
+.create-payment-help {
+	margin: 0;
+	padding: 12px 14px;
+	border-radius: 12px;
+	background: rgba(30, 58, 138, 0.05);
+	border: 1px dashed rgba(37, 99, 235, 0.28);
+	font-size: 13px;
+	line-height: 1.65;
+	color: #334155;
+}
+
 .state-block {
 	padding: 18px;
 	border-radius: var(--pay-radius-md);
@@ -633,6 +644,24 @@ body {
 	align-items: center;
 	gap: 8px;
 	color: #0f172a;
+}
+
+.lifecycle-control-card {
+	padding: 16px 18px;
+	background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.lifecycle-control-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 14px;
+}
+
+.lifecycle-hint {
+	margin-top: 10px;
+	color: #475569;
+	font-size: 13px;
 }
 
 .summary-card {
@@ -900,6 +929,10 @@ body {
 	.summary-top-row {
 		flex-direction: column;
 		align-items: flex-start;
+	}
+
+	.lifecycle-control-head {
+		flex-direction: column;
 	}
 
 	.details-grid.two-col,
