@@ -184,6 +184,11 @@
 
   <!-- Main Content -->
   <div class="reports-container">
+    <!-- Loading indicator -->
+    <div id="reports-loading" style="display:none;text-align:center;padding:40px;font-size:15px;color:#6B7280;">
+      <i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Loading live data&hellip;
+    </div>
+
     <!-- Page Header -->
     <div class="page-header">
       <div class="header-content">
@@ -208,8 +213,8 @@
           <i class="fas fa-exchange-alt"></i>
         </div>
         <div class="card-value">
-          <div class="value">12,458</div>
-          <div class="unit">transactions</div>
+          <div class="value" id="total-count">12,458</div>
+          <div class="unit" id="total-unit">transactions</div>
         </div>
         <div class="card-footer">
           <span class="stat-change positive">
@@ -224,8 +229,8 @@
           <i class="fas fa-check-circle"></i>
         </div>
         <div class="card-value">
-          <div class="value">11,230</div>
-          <div class="unit">90.2% success</div>
+          <div class="value" id="completed-count">11,230</div>
+          <div class="unit" id="completed-unit">90.2% success</div>
         </div>
         <div class="card-footer">
           <span class="stat-success">
@@ -240,8 +245,8 @@
           <i class="fas fa-times-circle"></i>
         </div>
         <div class="card-value">
-          <div class="value">892</div>
-          <div class="unit">7.2% failure</div>
+          <div class="value" id="failed-count">892</div>
+          <div class="unit" id="failed-unit">7.2% failure</div>
         </div>
         <div class="card-footer">
           <span class="stat-danger">
@@ -256,8 +261,8 @@
           <i class="fas fa-clock"></i>
         </div>
         <div class="card-value">
-          <div class="value">336</div>
-          <div class="unit">2.7% in progress</div>
+          <div class="value" id="pending-count">336</div>
+          <div class="unit" id="pending-unit">2.7% in progress</div>
         </div>
         <div class="card-footer">
           <span class="stat-warning">
@@ -322,7 +327,7 @@
                 <th>Average</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="senders-tbody">
               <tr>
                 <td><span class="rank-badge rank-1">1</span></td>
                 <td>Global Corp Ltd</td>
@@ -380,7 +385,7 @@
                 <th>Average</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="receivers-tbody">
               <tr>
                 <td><span class="rank-badge rank-1">1</span></td>
                 <td>Banking Solutions</td>
@@ -441,7 +446,7 @@
                 <th>Date</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="largest-tbody">
               <tr>
                 <td>#PAY-001892</td>
                 <td>Global Corp Ltd</td>
@@ -545,7 +550,7 @@
                 <th>Trend</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="failure-tbody">
               <tr>
                 <td>
                   <i class="fas fa-times-circle" style="color: #EF4444; margin-right: 8px;"></i>
@@ -782,5 +787,7 @@
       alert('Export functionality will be implemented with backend integration');
     });
   </script>
+  <script src="js/api.js"></script>
+  <script src="js/reports.js"></script>
 </body>
 </html>
