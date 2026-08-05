@@ -1,75 +1,4 @@
-const dashboardMockData = {
-	summary: {
-		totalPayments: 1248,
-		completedPayments: 1036,
-		pendingPayments: 138,
-		failedPayments: 74
-	},
-	statusDistribution: {
-		labels: ["Completed", "Pending", "Failed"],
-		values: [1036, 138, 74]
-	},
-	dailyPayments: {
-		labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-		values: [176, 188, 162, 205, 214, 149, 154]
-	},
-	recentPayments: [
-		{
-			id: "PAY-2026-8711",
-			sender: "Northwind Traders",
-			receiver: "Silverline Retail",
-			amount: 18450,
-			currency: "USD",
-			status: "COMPLETED",
-			createdDate: "2026-08-05T08:14:00"
-		},
-		{
-			id: "PAY-2026-8709",
-			sender: "Aster Finance",
-			receiver: "Nova Supplies",
-			amount: 6320,
-			currency: "USD",
-			status: "PENDING",
-			createdDate: "2026-08-05T07:52:00"
-		},
-		{
-			id: "PAY-2026-8707",
-			sender: "BlueRock Capital",
-			receiver: "Trinity Health",
-			amount: 22100,
-			currency: "USD",
-			status: "FAILED",
-			createdDate: "2026-08-05T07:19:00"
-		},
-		{
-			id: "PAY-2026-8704",
-			sender: "Pioneer Foods",
-			receiver: "Atlas Distribution",
-			amount: 9750,
-			currency: "USD",
-			status: "COMPLETED",
-			createdDate: "2026-08-05T06:47:00"
-		},
-		{
-			id: "PAY-2026-8701",
-			sender: "Lumina Logistics",
-			receiver: "Helios Stores",
-			amount: 4820,
-			currency: "USD",
-			status: "VALIDATED",
-			createdDate: "2026-08-05T06:02:00"
-		},
-		{
-			id: "PAY-2026-8698",
-			sender: "Mercury Telecom",
-			receiver: "Orbit Systems",
-			amount: 15340,
-			currency: "USD",
-			status: "SENT",
-			createdDate: "2026-08-05T05:40:00"
-		}
-	]
-};
+// Mock data removed — all data is now fetched live from the backend via api.js
 
 let statusChartInstance;
 let dailyChartInstance;
@@ -113,37 +42,51 @@ function updateLastRefresh() {
 	})}`;
 }
 
-function renderSummaryCards() {
-	const { summary } = dashboardMockData;
-	document.getElementById("totalPayments").textContent = summary.totalPayments.toLocaleString("en-US");
-	document.getElementById("completedPayments").textContent = summary.completedPayments.toLocaleString("en-US");
-	document.getElementById("pendingPayments").textContent = summary.pendingPayments.toLocaleString("en-US");
-	document.getElementById("failedPayments").textContent = summary.failedPayments.toLocaleString("en-US");
+function renderSummaryCards(payments) {
+	const total     = payments.length;
+	const completed = payments.filter(p => p.status === "COMPLETED").length;
+	const pending   = payments.filter(p =>
+		p.status === "PENDING" || p.status === "CREATED" ||
+		p.status === "VALIDATED" || p.status === "SENT").length;
+	const failed    = payments.filter(p => p.status === "FAILED").length;
+
+	document.getElementById("totalPayments").textContent     = total.toLocaleString("en-US");
+	document.getElementById("completedPayments").textContent = completed.toLocaleString("en-US");
+	document.getElementById("pendingPayments").textContent   = pending.toLocaleString("en-US");
+	document.getElementById("failedPayments").textContent    = failed.toLocaleString("en-US");
 }
 
-function renderRecentPayments() {
+function renderRecentPayments(payments) {
 	const body = document.getElementById("recentPaymentsBody");
-	if (!body) {
+	if (!body) return;
+
+	const recent = [...payments]
+		.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+		.slice(0, 10);
+
+	if (recent.length === 0) {
+		body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:24px;">No payments found</td></tr>`;
 		return;
 	}
 
-	body.innerHTML = dashboardMockData.recentPayments
-		.map(
-			(payment) => `
-			<tr>
-				<td>${payment.id}</td>
-				<td>${payment.sender}</td>
-				<td>${payment.receiver}</td>
-				<td>${formatCurrency(payment.amount, payment.currency)}</td>
-				<td><span class="status-badge ${formatStatusClass(payment.status)}">${payment.status}</span></td>
-				<td>${formatDate(payment.createdDate)}</td>
-			</tr>
-		`
-		)
-		.join("");
+	body.innerHTML = recent.map(p => `
+		<tr>
+			<td>${esc(p.paymentId)}</td>
+			<td>${esc(p.senderName   || "—")}</td>
+			<td>${esc(p.receiverName || "—")}</td>
+			<td>${formatCurrency(p.amount, p.currency || "USD")}</td>
+			<td><span class="status-badge ${formatStatusClass(p.status)}">${esc(p.status)}</span></td>
+			<td>${formatDate(p.createdAt)}</td>
+		</tr>`).join("");
 }
 
-function renderStatusChart() {
+function esc(str) {
+	const d = document.createElement("div");
+	d.textContent = str != null ? String(str) : "";
+	return d.innerHTML;
+}
+
+function renderStatusChart(payments) {
 	if (!window.Chart) {
 		return;
 	}
@@ -153,17 +96,25 @@ function renderStatusChart() {
 		return;
 	}
 
+	const completed = payments.filter(p => p.status === "COMPLETED").length;
+	const pending   = payments.filter(p =>
+		p.status === "PENDING" || p.status === "CREATED" ||
+		p.status === "VALIDATED" || p.status === "SENT").length;
+	const failed    = payments.filter(p => p.status === "FAILED").length;
+
 	if (statusChartInstance) {
-		statusChartInstance.destroy();
+		statusChartInstance.data.datasets[0].data = [completed, pending, failed];
+		statusChartInstance.update();
+		return;
 	}
 
 	statusChartInstance = new Chart(canvas, {
 		type: "doughnut",
 		data: {
-			labels: dashboardMockData.statusDistribution.labels,
+			labels: ["Completed", "Pending", "Failed"],
 			datasets: [
 				{
-					data: dashboardMockData.statusDistribution.values,
+					data: [completed, pending, failed],
 					backgroundColor: ["#22c55e", "#f59e0b", "#ef4444"],
 					borderColor: "#ffffff",
 					borderWidth: 4,
@@ -195,7 +146,7 @@ function renderStatusChart() {
 	});
 }
 
-function renderDailyChart() {
+function renderDailyChart(payments) {
 	if (!window.Chart) {
 		return;
 	}
@@ -205,18 +156,35 @@ function renderDailyChart() {
 		return;
 	}
 
+	// Build last-7-days labels and per-day counts from live data
+	const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	const labels = Array.from({ length: 7 }, (_, i) => {
+		const d = new Date();
+		d.setDate(d.getDate() - (6 - i));
+		return dayNames[d.getDay()];
+	});
+	const counts = Array(7).fill(0);
+	const now = new Date();
+	payments.forEach(p => {
+		const diff = Math.floor((now - new Date(p.createdAt)) / 86_400_000);
+		if (diff >= 0 && diff < 7) counts[6 - diff]++;
+	});
+
 	if (dailyChartInstance) {
-		dailyChartInstance.destroy();
+		dailyChartInstance.data.labels           = labels;
+		dailyChartInstance.data.datasets[0].data = counts;
+		dailyChartInstance.update();
+		return;
 	}
 
 	dailyChartInstance = new Chart(canvas, {
 		type: "line",
 		data: {
-			labels: dashboardMockData.dailyPayments.labels,
+			labels,
 			datasets: [
 				{
 					label: "Payments Processed",
-					data: dashboardMockData.dailyPayments.values,
+					data: counts,
 					borderColor: "#2563eb",
 					backgroundColor: "rgba(37, 99, 235, 0.18)",
 					fill: true,
@@ -285,7 +253,7 @@ function bindDashboardActions() {
 
 	if (refreshBtn) {
 		refreshBtn.addEventListener("click", () => {
-			renderDashboard();
+			loadDashboardData();
 		});
 	}
 
@@ -296,15 +264,67 @@ function bindDashboardActions() {
 	}
 }
 
-function renderDashboard() {
-	renderSummaryCards();
-	renderRecentPayments();
-	renderStatusChart();
-	renderDailyChart();
+function renderDashboard(payments) {
+	renderSummaryCards(payments);
+	renderRecentPayments(payments);
+	renderStatusChart(payments);
+	renderDailyChart(payments);
 	updateLastRefresh();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
 	bindDashboardActions();
-	renderDashboard();
+	loadDashboardData();
 });
+
+async function loadDashboardData() {
+	// Show spinner and disable button immediately so the user sees feedback
+	const refreshBtn = document.getElementById("refreshDashboardBtn");
+	if (refreshBtn) {
+		refreshBtn.disabled = true;
+		refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing…';
+	}
+
+	try {
+		// Payments are fetched first — they always resolve (api.js has internal fallback)
+		const payments = await getPayments();
+
+		// Enrich with account names; give the /accounts endpoint 3 s max so a
+		// slow or missing endpoint never blocks the refresh button indefinitely
+		let accountMap = {};
+		try {
+			const accounts = await Promise.race([
+				getAccounts(),
+				new Promise((_, reject) =>
+					setTimeout(() => reject(new Error("accounts timeout")), 3000)
+				)
+			]);
+			accounts.forEach(acc => {
+				const id = acc.accountId ?? acc.id;
+				if (id != null) {
+					accountMap[String(id)] = acc.accountHolderName || acc.name || `Account ${id}`;
+				}
+			});
+		} catch {
+			// /accounts unavailable or timed-out — proceed without names
+		}
+
+		// Merge resolved names into each payment record
+		const enriched = payments.map(p => ({
+			...p,
+			senderName:   p.senderName   || accountMap[String(p.sourceAccountId)]      || `Account ${p.sourceAccountId      ?? "?"}`,
+			receiverName: p.receiverName || accountMap[String(p.destinationAccountId)] || `Account ${p.destinationAccountId ?? "?"}`
+		}));
+
+		renderDashboard(enriched);
+	} catch (err) {
+		console.error("Dashboard data load failed:", err);
+		renderDashboard([]);   // render empty state — never crash the page
+	} finally {
+		// Always restore the button regardless of success or failure
+		if (refreshBtn) {
+			refreshBtn.disabled = false;
+			refreshBtn.innerHTML = '<i class="fas fa-rotate-right"></i> Refresh Snapshot';
+		}
+	}
+}
