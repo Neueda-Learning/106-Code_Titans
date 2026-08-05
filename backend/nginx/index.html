@@ -1,10 +1,862 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Processing System - Home</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Header and Navigation Styles */
+    header.dashboard-header {
+      background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+      padding: 0;
+      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .header-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 40px;
+      height: 70px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .project-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 24px;
+      font-weight: 700;
+      color: white;
+      font-family: 'Poppins', sans-serif;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    .project-title i {
+      font-size: 32px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    .header-nav {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-menu {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 0;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+
+    .nav-item {
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 18px;
+      text-decoration: none;
+      color: rgba(255, 255, 255, 0.85);
+      font-family: 'Poppins', sans-serif;
+      font-weight: 500;
+      font-size: 14px;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+      height: 100%;
+      position: relative;
+    }
+
+    .nav-link i {
+      font-size: 16px;
+      transition: transform 0.3s ease;
+    }
+
+    .nav-link:hover {
+      color: white;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-link:hover i {
+      transform: scale(1.1);
+    }
+
+    .nav-link.active {
+      color: white;
+      background-color: rgba(255, 255, 255, 0.15);
+      font-weight: 600;
+      border-bottom-color: white;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .current-date {
+      color: rgba(255, 255, 255, 0.95);
+      font-size: 13px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 8px 14px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1024px) {
+      .header-container {
+        padding: 0 24px;
+        gap: 30px;
+        height: 65px;
+      }
+
+      .project-title {
+        font-size: 20px;
+        gap: 10px;
+      }
+
+      .project-title i {
+        font-size: 28px;
+      }
+
+      .nav-link {
+        padding: 0 14px;
+        font-size: 13px;
+      }
+
+      .nav-link i {
+        font-size: 15px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header-container {
+        padding: 0 16px;
+        gap: 16px;
+        height: auto;
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+
+      .header-left {
+        flex: 0 0 auto;
+      }
+
+      .project-title {
+        font-size: 16px;
+        gap: 8px;
+      }
+
+      .project-title i {
+        font-size: 22px;
+        padding: 6px;
+      }
+
+      .current-date {
+        font-size: 11px;
+        padding: 6px 10px;
+        flex: 0 0 auto;
+      }
+
+      .header-nav {
+        flex: 1 0 100%;
+        order: 3;
+      }
+
+      .nav-menu {
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .nav-item {
+        flex: 1;
+      }
+
+      .nav-link {
+        flex-direction: column;
+        gap: 4px;
+        padding: 10px 8px;
+        font-size: 11px;
+        border-bottom: none;
+        border-top: 3px solid transparent;
+        height: auto;
+        padding-top: 8px;
+        padding-bottom: 8px;
+      }
+
+      .nav-link span {
+        display: none;
+      }
+
+      .nav-link i {
+        font-size: 16px;
+      }
+
+      .nav-link.active {
+        border-top-color: white;
+        border-bottom: none;
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header-container {
+        padding: 0 12px;
+        gap: 12px;
+      }
+
+      .project-title {
+        font-size: 14px;
+        gap: 6px;
+      }
+
+      .project-title i {
+        font-size: 18px;
+        padding: 4px;
+      }
+
+      .project-title span {
+        display: none;
+      }
+
+      .current-date {
+        font-size: 10px;
+        padding: 5px 8px;
+      }
+
+      .nav-link {
+        padding: 8px 6px;
+        font-size: 10px;
+      }
+
+      .nav-link i {
+        font-size: 14px;
+      }
+
+      .nav-link:hover {
+        background-color: transparent;
+      }
+    }
+
+    /* Home Page Styles */
+    .hero-section {
+      background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 50%, #3B82F6 100%);
+      padding: 80px 30px;
+      min-height: 500px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 400px;
+      height: 400px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      transform: translate(100px, -100px);
+    }
+
+    .hero-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-content h1 {
+      font-size: 48px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 24px;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+
+    .hero-content p {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 40px;
+      line-height: 1.8;
+      font-weight: 400;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 32px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-family: 'Poppins', sans-serif;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      border: none;
+      font-size: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary {
+      background: white;
+      color: #2563EB;
+      font-weight: 700;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      background: #F8FAFC;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: white;
+      transform: translateY(-3px);
+    }
+
+    /* Feature Cards */
+    .hero-features {
+      display: grid;
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 28px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(30, 58, 138, 0.1);
+      transition: all 0.3s ease;
+      border-left: 4px solid #2563EB;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 30px rgba(30, 58, 138, 0.15);
+      border-left-color: #1E3A8A;
+    }
+
+    .feature-card i {
+      font-size: 32px;
+      color: #2563EB;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .feature-card h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1E3A8A;
+      margin-bottom: 10px;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: #6B7280;
+      font-weight: 400;
+      line-height: 1.6;
+    }
+
+    /* Quick Links Section */
+    .quick-links {
+      padding: 80px 30px;
+      background: linear-gradient(to bottom, #F8FAFC 0%, #F0F4FF 100%);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-header h2 {
+      font-size: 38px;
+      font-weight: 800;
+      color: #1E3A8A;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+
+    .section-header p {
+      font-size: 16px;
+      color: #6B7280;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 32px;
+    }
+
+    .quick-link-card {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-top: 4px solid #2563EB;
+      position: relative;
+    }
+
+    .quick-link-card:hover {
+      transform: translateY(-12px);
+      box-shadow: 0 16px 40px rgba(30, 58, 138, 0.12);
+      border-top-color: #1E3A8A;
+    }
+
+    .quick-link-card:hover i {
+      transform: scale(1.15) rotate(5deg);
+      color: #1E3A8A;
+    }
+
+    .quick-link-card i {
+      font-size: 40px;
+      color: #2563EB;
+      margin-bottom: 20px;
+      display: block;
+      transition: all 0.3s ease;
+    }
+
+    .quick-link-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1E3A8A;
+      margin-bottom: 12px;
+    }
+
+    .quick-link-card p {
+      font-size: 15px;
+      color: #6B7280;
+      font-weight: 400;
+      line-height: 1.6;
+    }
+
+    /* Stats Section */
+    .stats-section {
+      background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+      padding: 60px 30px;
+      color: white;
+    }
+
+    .stats-grid {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 40px;
+      text-align: center;
+    }
+
+    .stat-card {
+      padding: 30px;
+    }
+
+    .stat-number {
+      font-size: 42px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 12px;
+    }
+
+    .stat-label {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+    }
+
+    /* Footer */
+    .dashboard-footer {
+      background-color: #0F172A;
+      color: white;
+      padding: 40px 30px;
+      text-align: center;
+      margin-top: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .footer-content p {
+      margin: 8px 0;
+      font-family: 'Poppins', sans-serif;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .hero-section {
+        padding: 60px 24px;
+      }
+
+      .hero-container {
+        gap: 40px;
+      }
+
+      .hero-content h1 {
+        font-size: 40px;
+      }
+
+      .section-header h2 {
+        font-size: 32px;
+      }
+
+      .quick-links {
+        padding: 60px 24px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero-section {
+        padding: 60px 16px;
+        min-height: auto;
+      }
+
+      .hero-container {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .hero-content h1 {
+        font-size: 32px;
+      }
+
+      .hero-content p {
+        font-size: 16px;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .quick-links {
+        padding: 60px 16px;
+      }
+
+      .section-header h2 {
+        font-size: 28px;
+      }
+
+      .links-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .quick-link-card {
+        padding: 32px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+      }
+
+      .stat-number {
+        font-size: 36px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero-section {
+        padding: 40px 12px;
+      }
+
+      .hero-content h1 {
+        font-size: 24px;
+      }
+
+      .hero-content p {
+        font-size: 14px;
+        margin-bottom: 24px;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .btn {
+        padding: 14px 24px;
+        font-size: 14px;
+      }
+
+      .hero-features {
+        gap: 16px;
+      }
+
+      .feature-card {
+        padding: 20px;
+      }
+
+      .quick-links {
+        padding: 40px 12px;
+      }
+
+      .section-header h2 {
+        font-size: 22px;
+      }
+
+      .quick-link-card {
+        padding: 24px;
+      }
+
+      .quick-link-card i {
+        font-size: 32px;
+      }
+
+      .quick-link-card h3 {
+        font-size: 16px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .stat-number {
+        font-size: 28px;
+      }
+
+      .dashboard-footer {
+        padding: 30px 12px;
+      }
+    }
+  </style>
 </head>
 <body>
+  <!-- Header with Navigation - Embedded for Instant Loading -->
+  <header class="dashboard-header">
+    <div class="header-container">
+      <div class="header-left">
+        <div class="project-title">
+          <i class="fas fa-coins"></i>
+          <span>Payment Processing System</span>
+        </div>
+      </div>
 
+      <nav class="header-nav">
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <a href="index.html" class="nav-link active" data-page="index">
+              <i class="fas fa-home"></i>
+              <span>Home</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="dashboard.html" class="nav-link" data-page="dashboard">
+              <i class="fas fa-chart-line"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="payments.html" class="nav-link" data-page="payments">
+              <i class="fas fa-credit-card"></i>
+              <span>Payments</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="reports.html" class="nav-link" data-page="reports">
+              <i class="fas fa-file-chart-line"></i>
+              <span>Reports</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="payment_details.html" class="nav-link" data-page="payment_details">
+              <i class="fas fa-receipt"></i>
+              <span>Payment Details</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="header-right">
+        <div class="current-date" id="currentDate"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="hero-section">
+      <div class="hero-container">
+        <div class="hero-content">
+          <h1>Secure Payment Processing Made Simple</h1>
+          <p>Manage, monitor, and process payments with industry-leading security and real-time analytics. Trusted by enterprises worldwide.</p>
+          <div class="hero-buttons">
+            <a href="dashboard.html" class="btn btn-primary">
+              <i class="fas fa-chart-line"></i> Go to Dashboard
+            </a>
+            <a href="payments.html" class="btn btn-secondary">
+              <i class="fas fa-credit-card"></i> View Payments
+            </a>
+          </div>
+        </div>
+        <div class="hero-features">
+          <div class="feature-card">
+            <i class="fas fa-lock"></i>
+            <h3>Secure</h3>
+            <p>Enterprise-grade security with compliance to global standards</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-bolt"></i>
+            <h3>Fast</h3>
+            <p>Lightning-fast payment processing in real-time</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-chart-bar"></i>
+            <h3>Analytics</h3>
+            <p>Comprehensive reporting and actionable insights</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-infinity"></i>
+            <h3>Reliable</h3>
+            <p>99.9% uptime with redundant systems</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">50M+</div>
+          <div class="stat-label">Transactions Processed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">99.9%</div>
+          <div class="stat-label">System Uptime</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">150+</div>
+          <div class="stat-label">Enterprise Clients</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">24/7</div>
+          <div class="stat-label">Support Available</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="quick-links">
+      <div class="container">
+        <div class="section-header">
+          <h2>Quick Access</h2>
+          <p>Navigate to key sections of the payment processing system</p>
+        </div>
+        <div class="links-grid">
+          <a href="dashboard.html" class="quick-link-card">
+            <i class="fas fa-tachometer-alt"></i>
+            <h3>Dashboard</h3>
+            <p>View real-time payment summary, statistics, and key metrics at a glance</p>
+          </a>
+          <a href="payments.html" class="quick-link-card">
+            <i class="fas fa-list-check"></i>
+            <h3>All Payments</h3>
+            <p>Search, filter, and manage all your payment transactions in one place</p>
+          </a>
+          <a href="reports.html" class="quick-link-card">
+            <i class="fas fa-chart-pie"></i>
+            <h3>Reports & Analytics</h3>
+            <p>Access detailed analytics and generate custom reports for your business</p>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="dashboard-footer">
+    <div class="footer-content">
+      <p>&copy; 2026 Payment Processing System. All rights reserved.</p>
+      <p>Built by Code Titans | Neueda Technologies</p>
+    </div>
+  </footer>
+
+  <script>
+    // Update current date on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const currentDateElement = document.getElementById('currentDate');
+      if (currentDateElement) {
+        const today = new Date();
+        const options = { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        };
+        const formattedDate = today.toLocaleDateString('en-US', options);
+        currentDateElement.textContent = formattedDate;
+      }
+    });
+  </script>
 </body>
 </html>
