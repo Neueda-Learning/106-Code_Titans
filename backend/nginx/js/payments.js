@@ -77,6 +77,100 @@ function resolveField(source, keys, fallback = "--") {
 	return fallback;
 }
 
+function formatAccountLabel(account) {
+	if (!account) {
+		return "Account";
+	}
+
+	const accountNumber = account.accountNumber || account.account_number || "Unknown";
+	const holderName = account.accountHolderName || account.account_holder_name || "Unknown Holder";
+	const bankName = account.bankName || account.bank_name || "Unknown Bank";
+	const currency = account.currency || "--";
+
+	return `${accountNumber} | ${holderName} | ${bankName} | ${currency}`;
+}
+
+function populateAccountSelect(selectElement, accounts, placeholder) {
+	if (!selectElement) {
+		return;
+	}
+
+	selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+	accounts.forEach((account) => {
+		const option = document.createElement("option");
+		option.value = String(account.accountId ?? account.account_id ?? "");
+		option.textContent = formatAccountLabel(account);
+		option.dataset.accountNumber = account.accountNumber || account.account_number || "";
+		option.dataset.accountHolderName = account.accountHolderName || account.account_holder_name || "";
+		option.dataset.bankName = account.bankName || account.bank_name || "";
+		option.dataset.currency = account.currency || "";
+		selectElement.appendChild(option);
+	});
+}
+
+function showCreatePaymentMessage(type, message) {
+	const messageElement = document.getElementById("createPaymentMessage");
+	if (!messageElement) {
+		return;
+	}
+
+	messageElement.textContent = message;
+	messageElement.className = `form-message ${type}`;
+	messageElement.hidden = false;
+}
+
+function clearCreatePaymentMessage() {
+	const messageElement = document.getElementById("createPaymentMessage");
+	if (!messageElement) {
+		return;
+	}
+
+	messageElement.hidden = true;
+	messageElement.textContent = "";
+	messageElement.className = "form-message";
+}
+
+function readCreatePaymentForm(form) {
+	const formData = new FormData(form);
+
+	return {
+		sourceAccountId: String(formData.get("sourceAccountId") || "").trim(),
+		destinationAccountId: String(formData.get("destinationAccountId") || "").trim(),
+		amount: String(formData.get("amount") || "").trim(),
+		currency: String(formData.get("currency") || "").trim(),
+		reference: String(formData.get("reference") || "").trim(),
+		idempotencyKey: String(formData.get("idempotencyKey") || "").trim()
+	};
+}
+
+function validateCreatePaymentInput(input) {
+	const requiredFields = [
+		"sourceAccountId",
+		"destinationAccountId",
+		"amount",
+		"currency",
+		"reference"
+	];
+
+	for (const field of requiredFields) {
+		if (!input[field]) {
+			return `Please fill ${field}.`;
+		}
+	}
+
+	const amount = Number(input.amount);
+
+	if (!Number.isFinite(amount) || amount <= 0) {
+		return "Amount must be a valid number greater than 0.";
+	}
+
+	if (input.sourceAccountId === input.destinationAccountId) {
+		return "Sender and receiver accounts must be different.";
+	}
+
+	return "";
+}
+
 async function initializePaymentsPage() {
 	const tableBody = document.getElementById("paymentsTableBody");
 	if (!tableBody) {
@@ -91,6 +185,15 @@ async function initializePaymentsPage() {
 	const searchInput = document.getElementById("paymentIdSearch");
 	const statusFilter = document.getElementById("statusFilter");
 	const refreshButton = document.getElementById("refreshPaymentsBtn");
+	const toggleCreateButton = document.getElementById("toggleCreatePaymentBtn");
+	const closeCreateButton = document.getElementById("closeCreatePaymentBtn");
+	const createPaymentPanel = document.getElementById("createPaymentPanel");
+	const createPaymentForm = document.getElementById("createPaymentForm");
+	const createPaymentSubmitButton = document.getElementById("createPaymentSubmitBtn");
+	const sourceAccountSelect = document.getElementById("sourceAccountId");
+	const destinationAccountSelect = document.getElementById("destinationAccountId");
+	let createPanelOpen = false;
+	let availableAccounts = [];
 
 	let allPayments = [];
 	let filteredPayments = [];
@@ -119,8 +222,8 @@ async function initializePaymentsPage() {
 	function renderRows(rows) {
 		tableBody.innerHTML = rows.map((payment) => {
 			const id = resolveField(payment, ["paymentId", "id"], "--");
-			const sender = resolveField(payment, ["senderName", "sender", "fromAccount"], "--");
-			const receiver = resolveField(payment, ["receiverName", "receiver", "toAccount"], "--");
+			const sender = resolveField(payment, ["senderName", "sender", "fromAccount", "sourceAccountId"], "--");
+			const receiver = resolveField(payment, ["receiverName", "receiver", "toAccount", "destinationAccountId"], "--");
 			const amount = resolveField(payment, ["amount"], "--");
 			const currency = resolveField(payment, ["currency"], "--");
 			const status = resolveField(payment, ["status"], "CREATED");
@@ -191,6 +294,88 @@ async function initializePaymentsPage() {
 	statusFilter?.addEventListener("change", applyFilters);
 	refreshButton?.addEventListener("click", loadPaymentsData);
 
+	function setCreatePanelVisible(visible) {
+		createPanelOpen = visible;
+		if (createPaymentPanel) {
+			createPaymentPanel.hidden = !visible;
+		}
+		if (toggleCreateButton) {
+			toggleCreateButton.setAttribute("aria-expanded", String(visible));
+		}
+		if (visible) {
+			createPaymentPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+		}
+	}
+
+	function toggleCreatePanel() {
+		setCreatePanelVisible(!createPanelOpen);
+	}
+
+	function resetCreateFormState() {
+		createPaymentForm?.reset();
+		clearCreatePaymentMessage();
+	}
+
+	async function handleCreatePaymentSubmit(event) {
+		event.preventDefault();
+		clearCreatePaymentMessage();
+
+		if (createPaymentSubmitButton) {
+			createPaymentSubmitButton.disabled = true;
+			createPaymentSubmitButton.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Creating...';
+		}
+
+		try {
+			const input = readCreatePaymentForm(createPaymentForm);
+			const validationError = validateCreatePaymentInput(input);
+			if (validationError) {
+				showCreatePaymentMessage("error", validationError);
+				return;
+			}
+
+			const sourceAccount = availableAccounts.find((account) => String(account.accountId ?? account.account_id) === input.sourceAccountId);
+			const destinationAccount = availableAccounts.find((account) => String(account.accountId ?? account.account_id) === input.destinationAccountId);
+
+			const createdPayment = await createPayment({
+				...input,
+				sourceAccount,
+				destinationAccount
+			});
+			const paymentId = createdPayment?.paymentId || createdPayment?.id;
+			showCreatePaymentMessage("success", `Payment ${paymentId} created successfully.`);
+			resetCreateFormState();
+			setCreatePanelVisible(true);
+
+			window.setTimeout(() => {
+				window.location.href = `payment_details.html?id=${encodeURIComponent(paymentId)}`;
+			}, 900);
+		} catch (error) {
+			console.error("Create payment failed:", error);
+			showCreatePaymentMessage("error", "Unable to create payment right now. Please try again.");
+		} finally {
+			if (createPaymentSubmitButton) {
+				createPaymentSubmitButton.disabled = false;
+				createPaymentSubmitButton.innerHTML = '<i class="fas fa-plus" aria-hidden="true"></i> Create Payment';
+			}
+		}
+	}
+
+	async function loadAccountsForCreatePayment() {
+		try {
+			availableAccounts = await getAccounts();
+			populateAccountSelect(sourceAccountSelect, availableAccounts, "Select sender account");
+			populateAccountSelect(destinationAccountSelect, availableAccounts, "Select receiver account");
+		} catch (error) {
+			console.error("Error loading accounts:", error);
+			showCreatePaymentMessage("error", "Unable to load accounts for payment creation.");
+		}
+	}
+
+	toggleCreateButton?.addEventListener("click", toggleCreatePanel);
+	closeCreateButton?.addEventListener("click", () => setCreatePanelVisible(false));
+	createPaymentForm?.addEventListener("submit", handleCreatePaymentSubmit);
+
+	loadAccountsForCreatePayment();
 	loadPaymentsData();
 }
 
@@ -257,18 +442,18 @@ function populatePaymentDetails(payment) {
 	const netAmount = Number(amount) - Number(fee);
 
 	setTextById("detailPaymentId", resolveField(payment, ["paymentId", "id"]));
-	setTextById("detailReferenceId", resolveField(payment, ["referenceId", "transactionId", "externalRef"]));
+	setTextById("detailReferenceId", resolveField(payment, ["reference", "referenceId", "transactionId", "externalRef"]));
 	setTextById("detailCreatedAt", formatDateTime(resolveField(payment, ["createdAt", "createdDate", "createdOn"], null)));
 	setTextById("detailUpdatedAt", formatDateTime(resolveField(payment, ["updatedAt", "updatedDate", "lastUpdated"], null)));
 	setTextById("detailPaymentMethod", resolveField(payment, ["paymentMethod", "method", "type"]));
 
-	setTextById("senderName", resolveField(payment, ["senderName", "sender", "fromName"]));
-	setTextById("senderAccount", resolveField(payment, ["senderAccount", "fromAccount"]));
+	setTextById("senderName", resolveField(payment, ["senderName", "sender", "fromName", "sourceAccountId"]));
+	setTextById("senderAccount", resolveField(payment, ["senderAccount", "fromAccount", "sourceAccountId"]));
 	setTextById("senderBank", resolveField(payment, ["senderBank", "fromBank"]));
 	setTextById("senderCountry", resolveField(payment, ["senderCountry", "fromCountry"]));
 
-	setTextById("receiverName", resolveField(payment, ["receiverName", "receiver", "toName"]));
-	setTextById("receiverAccount", resolveField(payment, ["receiverAccount", "toAccount"]));
+	setTextById("receiverName", resolveField(payment, ["receiverName", "receiver", "toName", "destinationAccountId"]));
+	setTextById("receiverAccount", resolveField(payment, ["receiverAccount", "toAccount", "destinationAccountId"]));
 	setTextById("receiverBank", resolveField(payment, ["receiverBank", "toBank"]));
 	setTextById("receiverCountry", resolveField(payment, ["receiverCountry", "toCountry"]));
 
