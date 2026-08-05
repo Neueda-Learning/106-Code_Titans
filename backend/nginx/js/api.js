@@ -1,4 +1,4 @@
-const API_BASE_URL = window.API_BASE_URL || "http://localhost:8080";
+const API_BASE_URL = window.API_BASE_URL || "http://localhost:8082";
 
 async function apiGet(path, params = {}) {
 	const url = new URL(`${API_BASE_URL}${path}`);
