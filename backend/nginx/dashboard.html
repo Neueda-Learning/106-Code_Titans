@@ -16,11 +16,114 @@
   <!-- Main Content -->
   <main class="main-content">
     <div class="dashboard-container">
-      <h1>Dashboard</h1>
-      <p>Dashboard content will be loaded here</p>
+      <section class="dashboard-hero">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">Payments Control Center</p>
+          <h1>Operational Dashboard</h1>
+          <p class="hero-subtitle">Track payment health, monitor processing trends, and review the latest transaction flow in one place.</p>
+        </div>
+        <div class="hero-actions">
+          <button id="refreshDashboardBtn" class="action-btn action-btn-primary" type="button">
+            <i class="fas fa-rotate-right"></i>
+            Refresh Snapshot
+          </button>
+          <button id="exportDashboardBtn" class="action-btn" type="button">
+            <i class="fas fa-download"></i>
+            Export Summary
+          </button>
+          <p id="lastUpdated" class="last-updated">Last updated: --</p>
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="Payment Summary">
+        <article class="summary-card total-payments">
+          <div class="summary-icon-wrap">
+            <i class="fas fa-wallet"></i>
+          </div>
+          <div class="summary-content">
+            <p>Total Payments</p>
+            <h2 id="totalPayments">--</h2>
+          </div>
+        </article>
+
+        <article class="summary-card completed-payments">
+          <div class="summary-icon-wrap">
+            <i class="fas fa-circle-check"></i>
+          </div>
+          <div class="summary-content">
+            <p>Completed</p>
+            <h2 id="completedPayments">--</h2>
+          </div>
+        </article>
+
+        <article class="summary-card pending-payments">
+          <div class="summary-icon-wrap">
+            <i class="fas fa-hourglass-half"></i>
+          </div>
+          <div class="summary-content">
+            <p>Pending</p>
+            <h2 id="pendingPayments">--</h2>
+          </div>
+        </article>
+
+        <article class="summary-card failed-payments">
+          <div class="summary-icon-wrap">
+            <i class="fas fa-triangle-exclamation"></i>
+          </div>
+          <div class="summary-content">
+            <p>Failed</p>
+            <h2 id="failedPayments">--</h2>
+          </div>
+        </article>
+      </section>
+
+      <section class="dashboard-insights" aria-label="Payment Insights">
+        <article class="panel-card">
+          <div class="panel-header">
+            <h3>Status Distribution</h3>
+            <span class="panel-badge">Realtime View</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="statusChart" aria-label="Status distribution chart"></canvas>
+          </div>
+        </article>
+
+        <article class="panel-card">
+          <div class="panel-header">
+            <h3>Daily Payment Trend</h3>
+            <span class="panel-badge">Last 7 Days</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="dailyChart" aria-label="Daily payment trend chart"></canvas>
+          </div>
+        </article>
+      </section>
+
+      <section class="recent-payments-section" aria-label="Recent Payments">
+        <div class="panel-header">
+          <h3>Recent Payments</h3>
+          <span class="panel-badge neutral">Sample Data</span>
+        </div>
+        <div class="table-wrap">
+          <table class="payments-table">
+            <thead>
+              <tr>
+                <th>Payment ID</th>
+                <th>Sender</th>
+                <th>Receiver</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Created Date</th>
+              </tr>
+            </thead>
+            <tbody id="recentPaymentsBody"></tbody>
+          </table>
+        </div>
+      </section>
     </div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="js/api.js"></script>
   <script src="js/dashboard.js"></script>
   <script>
