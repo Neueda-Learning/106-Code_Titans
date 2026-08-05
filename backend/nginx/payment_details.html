@@ -10,39 +10,125 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Header and Navigation -->
   <div id="header-nav-container"></div>
 
-  <!-- Main Content -->
   <main class="main-content">
-    <div class="payment-details-container">
-      <h1>Payment Details</h1>
-      <p>Payment details content will be loaded here</p>
-    </div>
+    <section class="payment-details-page" aria-labelledby="detailsPageTitle">
+      <header class="details-hero card">
+        <div class="details-hero-copy">
+          <p class="eyebrow">Transaction Investigation</p>
+          <h1 id="detailsPageTitle">Payment Details</h1>
+          <p class="hero-description">Full lifecycle visibility with sender, receiver, transaction, and failure diagnostics.</p>
+        </div>
+        <div class="details-hero-actions">
+          <a href="payments.html" class="btn btn-secondary" aria-label="Back to payments page">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+            Back To Payments
+          </a>
+        </div>
+      </header>
+
+      <section id="detailsLoading" class="card state-block" aria-live="polite">
+        <p><i class="fas fa-spinner" aria-hidden="true"></i> Loading payment details...</p>
+      </section>
+
+      <section id="detailsError" class="card state-block" hidden>
+        <p><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Unable to load payment details. Please verify payment ID and try again.</p>
+      </section>
+
+      <section id="detailsContent" class="details-content-grid" hidden>
+        <article class="card details-card summary-card" aria-label="Payment summary">
+          <div class="summary-top-row">
+            <div>
+              <p class="field-label">Payment ID</p>
+              <p id="detailPaymentId" class="summary-id">--</p>
+            </div>
+            <div>
+              <p class="field-label">Current Status</p>
+              <span id="detailStatusBadge" class="status-badge status-created">CREATED</span>
+            </div>
+          </div>
+          <div class="details-grid two-col">
+            <div class="detail-item">
+              <p class="field-label">Reference ID</p>
+              <p id="detailReferenceId" class="field-value">--</p>
+            </div>
+            <div class="detail-item">
+              <p class="field-label">Created Date</p>
+              <p id="detailCreatedAt" class="field-value">--</p>
+            </div>
+            <div class="detail-item">
+              <p class="field-label">Last Updated</p>
+              <p id="detailUpdatedAt" class="field-value">--</p>
+            </div>
+            <div class="detail-item">
+              <p class="field-label">Payment Method</p>
+              <p id="detailPaymentMethod" class="field-value">--</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="card details-card" aria-label="Sender details">
+          <h2><i class="fas fa-user-check" aria-hidden="true"></i> Sender Details</h2>
+          <div class="details-grid two-col">
+            <div class="detail-item"><p class="field-label">Sender Name</p><p id="senderName" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Sender Account</p><p id="senderAccount" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Sender Bank</p><p id="senderBank" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Sender Country</p><p id="senderCountry" class="field-value">--</p></div>
+          </div>
+        </article>
+
+        <article class="card details-card" aria-label="Receiver details">
+          <h2><i class="fas fa-user-plus" aria-hidden="true"></i> Receiver Details</h2>
+          <div class="details-grid two-col">
+            <div class="detail-item"><p class="field-label">Receiver Name</p><p id="receiverName" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Receiver Account</p><p id="receiverAccount" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Receiver Bank</p><p id="receiverBank" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Receiver Country</p><p id="receiverCountry" class="field-value">--</p></div>
+          </div>
+        </article>
+
+        <article class="card details-card" aria-label="Transaction details">
+          <h2><i class="fas fa-money-check-dollar" aria-hidden="true"></i> Transaction Details</h2>
+          <div class="details-grid three-col">
+            <div class="detail-item"><p class="field-label">Amount</p><p id="detailAmount" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Currency</p><p id="detailCurrency" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Fee</p><p id="detailFee" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Net Amount</p><p id="detailNetAmount" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Purpose</p><p id="detailPurpose" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Channel</p><p id="detailChannel" class="field-value">--</p></div>
+          </div>
+        </article>
+
+        <article id="failureInfoCard" class="card details-card failure-card" aria-label="Failure information" hidden>
+          <h2><i class="fas fa-bug" aria-hidden="true"></i> Failure Information</h2>
+          <div class="details-grid two-col">
+            <div class="detail-item"><p class="field-label">Failure Reason</p><p id="detailFailureReason" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Failure Code</p><p id="detailFailureCode" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Failure Stage</p><p id="detailFailureStage" class="field-value">--</p></div>
+            <div class="detail-item"><p class="field-label">Retryable</p><p id="detailRetryable" class="field-value">--</p></div>
+          </div>
+        </article>
+
+        <article class="card details-card timeline-card" aria-label="Payment timeline">
+          <h2><i class="fas fa-timeline" aria-hidden="true"></i> Payment Timeline</h2>
+          <ol id="paymentTimeline" class="timeline-list">
+            <li class="timeline-item">
+              <div class="timeline-marker"></div>
+              <div class="timeline-content">
+                <p class="timeline-status">CREATED</p>
+                <p class="timeline-time">--</p>
+                <p class="timeline-note">Waiting for timeline events.</p>
+              </div>
+            </li>
+          </ol>
+        </article>
+      </section>
+    </section>
   </main>
 
   <script src="js/api.js"></script>
+  <script src="js/common.js"></script>
   <script src="js/payments.js"></script>
-  <script>
-    // Load header and navigation
-    document.addEventListener('DOMContentLoaded', function() {
-      fetch('common.html')
-        .then(response => response.text())
-        .then(html => {
-          const container = document.getElementById('header-nav-container');
-          container.innerHTML = html;
-          
-          setTimeout(function() {
-            const navLinks = document.querySelectorAll('.nav-link');
-            navLinks.forEach(link => {
-              if (link.getAttribute('href') === 'payment_details.html' || link.getAttribute('data-page') === 'payment_details') {
-                link.classList.add('active');
-              }
-            });
-          }, 100);
-        })
-        .catch(error => console.error('Error loading header:', error));
-    });
-  </script>
 </body>
 </html>
