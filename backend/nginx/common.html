@@ -1,0 +1,359 @@
+<!-- Header with Navigation Component -->
+<header class="dashboard-header">
+  <div class="header-container">
+    <div class="header-left">
+      <div class="project-title">
+        <i class="fas fa-coins"></i>
+        <span>Payment Processing System</span>
+      </div>
+    </div>
+
+    <nav class="header-nav">
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="index.html" class="nav-link" data-page="index">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="dashboard.html" class="nav-link" data-page="dashboard">
+            <i class="fas fa-chart-line"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="payments.html" class="nav-link" data-page="payments">
+            <i class="fas fa-credit-card"></i>
+            <span>Payments</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="reports.html" class="nav-link" data-page="reports">
+            <i class="fas fa-file-chart-line"></i>
+            <span>Reports</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="payment_details.html" class="nav-link" data-page="payment_details">
+            <i class="fas fa-receipt"></i>
+            <span>Payment Details</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="header-right">
+      <div class="current-date" id="currentDate"></div>
+    </div>
+  </div>
+</header>
+
+<style>
+  /* Header Styles */
+  .dashboard-header {
+    background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+    padding: 0;
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+
+  .header-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 40px;
+    height: 70px;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .project-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+
+  .project-title i {
+    font-size: 32px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px;
+    border-radius: 6px;
+  }
+
+  /* Navigation in Header */
+  .header-nav {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 0;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+
+  .nav-item {
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 18px;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    height: 100%;
+    position: relative;
+  }
+
+  .nav-link i {
+    font-size: 16px;
+    transition: transform 0.3s ease;
+  }
+
+  .nav-link:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .nav-link:hover i {
+    transform: scale(1.1);
+  }
+
+  .nav-link.active {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.15);
+    font-weight: 600;
+    border-bottom-color: white;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .current-date {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 13px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 1024px) {
+    .header-container {
+      padding: 0 24px;
+      gap: 30px;
+      height: 65px;
+    }
+
+    .project-title {
+      font-size: 20px;
+      gap: 10px;
+    }
+
+    .project-title i {
+      font-size: 28px;
+    }
+
+    .nav-link {
+      padding: 0 14px;
+      font-size: 13px;
+    }
+
+    .nav-link i {
+      font-size: 15px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .header-container {
+      padding: 0 16px;
+      gap: 16px;
+      height: auto;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      flex: 0 0 auto;
+    }
+
+    .project-title {
+      font-size: 16px;
+      gap: 8px;
+    }
+
+    .project-title i {
+      font-size: 22px;
+      padding: 6px;
+    }
+
+    .current-date {
+      font-size: 11px;
+      padding: 6px 10px;
+      flex: 0 0 auto;
+    }
+
+    .header-nav {
+      flex: 1 0 100%;
+      order: 3;
+    }
+
+    .nav-menu {
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .nav-item {
+      flex: 1;
+    }
+
+    .nav-link {
+      flex-direction: column;
+      gap: 4px;
+      padding: 10px 8px;
+      font-size: 11px;
+      border-bottom: none;
+      border-top: 3px solid transparent;
+      height: auto;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    .nav-link span {
+      display: none;
+    }
+
+    .nav-link i {
+      font-size: 16px;
+    }
+
+    .nav-link.active {
+      border-top-color: white;
+      border-bottom: none;
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .nav-link:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .header-container {
+      padding: 0 12px;
+      gap: 12px;
+    }
+
+    .project-title {
+      font-size: 14px;
+      gap: 6px;
+    }
+
+    .project-title i {
+      font-size: 18px;
+      padding: 4px;
+    }
+
+    .project-title span {
+      display: none;
+    }
+
+    .current-date {
+      font-size: 10px;
+      padding: 5px 8px;
+    }
+
+    .nav-link {
+      padding: 8px 6px;
+      font-size: 10px;
+    }
+
+    .nav-link i {
+      font-size: 14px;
+    }
+
+    .nav-link:hover {
+      background-color: transparent;
+    }
+  }
+</style>
+
+<script>
+  // Set active navigation link based on current page
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get current page filename
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const currentFileName = currentPage.split('?')[0]; // Remove query parameters
+
+    // Get all navigation links
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+      const href = link.getAttribute('href');
+      const dataPage = link.getAttribute('data-page');
+      
+      // Check if the href matches the current page
+      if (href === currentFileName || 
+          (currentFileName === '' && href === 'index.html') ||
+          currentFileName === 'common.html') {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    });
+
+    // Update current date on page load
+    const currentDateElement = document.getElementById('currentDate');
+    if (currentDateElement) {
+      const today = new Date();
+      const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      };
+      const formattedDate = today.toLocaleDateString('en-US', options);
+      currentDateElement.textContent = formattedDate;
+    }
+  });
+</script>

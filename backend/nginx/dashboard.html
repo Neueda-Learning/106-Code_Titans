@@ -1,10 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Processing System - Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- Header and Navigation -->
+  <div id="header-nav-container"></div>
 
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="dashboard-container">
+      <h1>Dashboard</h1>
+      <p>Dashboard content will be loaded here</p>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script>
+    // Load header and navigation
+    document.addEventListener('DOMContentLoaded', function() {
+      fetch('common.html')
+        .then(response => response.text())
+        .then(html => {
+          const container = document.getElementById('header-nav-container');
+          container.innerHTML = html;
+          
+          setTimeout(function() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+              if (link.getAttribute('href') === 'dashboard.html' || link.getAttribute('data-page') === 'dashboard') {
+                link.classList.add('active');
+              }
+            });
+          }, 100);
+        })
+        .catch(error => console.error('Error loading header:', error));
+    });
+  </script>
 </body>
 </html>
