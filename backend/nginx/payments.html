@@ -10,39 +10,121 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Header and Navigation -->
   <div id="header-nav-container"></div>
 
-  <!-- Main Content -->
   <main class="main-content">
-    <div class="payments-container">
-      <h1>Payments</h1>
-      <p>Payments content will be loaded here</p>
-    </div>
+    <section class="payments-page" aria-labelledby="paymentsPageTitle">
+      <header class="payments-hero card">
+        <div class="hero-copy">
+          <p class="eyebrow">Payment Operations</p>
+          <h1 id="paymentsPageTitle">Payments</h1>
+          <p class="hero-description">Monitor live transactions, find records quickly, and drill into payment lifecycle details.</p>
+        </div>
+        <div class="hero-actions">
+          <a href="payment_details.html" class="btn btn-secondary" aria-label="Open payment details page">
+            <i class="fas fa-receipt" aria-hidden="true"></i>
+            Payment Details
+          </a>
+          <button id="refreshPaymentsBtn" type="button" class="btn btn-primary" aria-label="Refresh payments list">
+            <i class="fas fa-rotate-right" aria-hidden="true"></i>
+            Refresh
+          </button>
+        </div>
+      </header>
+
+      <section class="payments-kpi-grid" aria-label="Payment snapshot">
+        <article class="kpi-card card" aria-labelledby="kpiTotalLabel">
+          <p id="kpiTotalLabel" class="kpi-label">Total</p>
+          <p id="kpiTotalPayments" class="kpi-value">0</p>
+        </article>
+        <article class="kpi-card card" aria-labelledby="kpiCompletedLabel">
+          <p id="kpiCompletedLabel" class="kpi-label">Completed</p>
+          <p id="kpiCompletedPayments" class="kpi-value">0</p>
+        </article>
+        <article class="kpi-card card" aria-labelledby="kpiPendingLabel">
+          <p id="kpiPendingLabel" class="kpi-label">Pending</p>
+          <p id="kpiPendingPayments" class="kpi-value">0</p>
+        </article>
+        <article class="kpi-card card" aria-labelledby="kpiFailedLabel">
+          <p id="kpiFailedLabel" class="kpi-label">Failed</p>
+          <p id="kpiFailedPayments" class="kpi-value">0</p>
+        </article>
+      </section>
+
+      <section id="payments-controls" class="payments-controls card" aria-label="Payment filters">
+        <div class="control-group control-search">
+          <label for="paymentIdSearch">Search Payment ID</label>
+          <div class="input-with-icon">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input
+              type="text"
+              id="paymentIdSearch"
+              name="paymentIdSearch"
+              placeholder="Try: PAY-100045"
+              autocomplete="off"
+            >
+          </div>
+        </div>
+
+        <div class="control-group control-status">
+          <label for="statusFilter">Status</label>
+          <select id="statusFilter" name="statusFilter" aria-label="Filter by payment status">
+            <option value="ALL">All</option>
+            <option value="CREATED">Created</option>
+            <option value="VALIDATED">Validated</option>
+            <option value="SENT">Sent</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="FAILED">Failed</option>
+            <option value="PENDING">Pending</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="payments-meta" aria-live="polite" aria-atomic="true">
+        <p id="paymentsCount">0 payments found</p>
+      </section>
+
+      <section id="paymentsLoading" class="card state-block" aria-live="polite">
+        <p><i class="fas fa-spinner" aria-hidden="true"></i> Loading payments...</p>
+      </section>
+
+      <section id="paymentsError" class="card state-block" hidden>
+        <p><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Unable to load payments. Please try again.</p>
+      </section>
+
+      <section id="payments-table-section" class="payments-table-section card" hidden>
+        <div class="table-toolbar">
+          <h2>Payment Records</h2>
+          <p>Use the View action to inspect the full lifecycle for a payment.</p>
+        </div>
+        <div class="table-wrapper">
+          <table id="paymentsTable" class="payments-table">
+            <caption class="visually-hidden">Payment list with sender, receiver, amount, status and created date</caption>
+            <thead>
+              <tr>
+                <th scope="col">Payment ID</th>
+                <th scope="col">Sender</th>
+                <th scope="col">Receiver</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Currency</th>
+                <th scope="col">Status</th>
+                <th scope="col">Created Date</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="paymentsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="paymentsEmpty" class="card state-block" hidden>
+        <p><i class="fas fa-circle-info" aria-hidden="true"></i> No payments match the selected filters.</p>
+      </section>
+    </section>
   </main>
 
   <script src="js/api.js"></script>
+  <script src="js/common.js"></script>
   <script src="js/payments.js"></script>
-  <script>
-    // Load header and navigation
-    document.addEventListener('DOMContentLoaded', function() {
-      fetch('common.html')
-        .then(response => response.text())
-        .then(html => {
-          const container = document.getElementById('header-nav-container');
-          container.innerHTML = html;
-          
-          setTimeout(function() {
-            const navLinks = document.querySelectorAll('.nav-link');
-            navLinks.forEach(link => {
-              if (link.getAttribute('href') === 'payments.html' || link.getAttribute('data-page') === 'payments') {
-                link.classList.add('active');
-              }
-            });
-          }, 100);
-        })
-        .catch(error => console.error('Error loading header:', error));
-    });
-  </script>
 </body>
 </html>
