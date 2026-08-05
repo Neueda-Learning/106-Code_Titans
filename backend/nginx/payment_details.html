@@ -36,6 +36,25 @@
         <p><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Unable to load payment details. Please verify payment ID and try again.</p>
       </section>
 
+      <section id="lifecycleSimulationCard" class="card details-card lifecycle-control-card" hidden>
+        <div class="lifecycle-control-head">
+          <div>
+            <p class="field-label">Realtime Lifecycle Demo</p>
+            <h2><i class="fas fa-wave-square" aria-hidden="true"></i> Processing Flow</h2>
+            <p id="lifecycleCurrentMessage" class="field-value">Waiting for payment processing to begin.</p>
+          </div>
+          <div class="details-hero-actions">
+            <button id="refreshLifecycleBtn" type="button" class="btn btn-primary">
+              <i class="fas fa-rotate-right" aria-hidden="true"></i>
+              Refresh Status
+            </button>
+          </div>
+        </div>
+        <p id="lifecycleScenarioHint" class="hero-description lifecycle-hint">
+          Newly created payments can be automatically stepped through validation, sending, and final settlement from this page.
+        </p>
+      </section>
+
       <section id="detailsContent" class="details-content-grid" hidden>
         <article class="card details-card summary-card" aria-label="Payment summary">
           <div class="summary-top-row">
