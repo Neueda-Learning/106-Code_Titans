@@ -61,6 +61,11 @@ function readPaymentIdFromQuery() {
 	return query.get("id") || query.get("paymentId") || "";
 }
 
+function shouldAutoProcessFromQuery() {
+	const query = new URLSearchParams(window.location.search);
+	return query.get("autoProcess") === "1";
+}
+
 function setTextById(elementId, value) {
 	const element = document.getElementById(elementId);
 	if (element) {
@@ -100,10 +105,6 @@ function populateAccountSelect(selectElement, accounts, placeholder) {
 		const option = document.createElement("option");
 		option.value = String(account.accountId ?? account.account_id ?? "");
 		option.textContent = formatAccountLabel(account);
-		option.dataset.accountNumber = account.accountNumber || account.account_number || "";
-		option.dataset.accountHolderName = account.accountHolderName || account.account_holder_name || "";
-		option.dataset.bankName = account.bankName || account.bank_name || "";
-		option.dataset.currency = account.currency || "";
 		selectElement.appendChild(option);
 	});
 }
@@ -139,7 +140,8 @@ function readCreatePaymentForm(form) {
 		amount: String(formData.get("amount") || "").trim(),
 		currency: String(formData.get("currency") || "").trim(),
 		reference: String(formData.get("reference") || "").trim(),
-		idempotencyKey: String(formData.get("idempotencyKey") || "").trim()
+		idempotencyKey: String(formData.get("idempotencyKey") || "").trim(),
+		processingScenario: String(formData.get("processingScenario") || "AUTO_SUCCESS").trim()
 	};
 }
 
@@ -159,7 +161,6 @@ function validateCreatePaymentInput(input) {
 	}
 
 	const amount = Number(input.amount);
-
 	if (!Number.isFinite(amount) || amount <= 0) {
 		return "Amount must be a valid number greater than 0.";
 	}
@@ -169,6 +170,51 @@ function validateCreatePaymentInput(input) {
 	}
 
 	return "";
+}
+
+function generateIdempotencyKey() {
+	if (window.crypto && typeof window.crypto.randomUUID === "function") {
+		return window.crypto.randomUUID();
+	}
+
+	return `idem-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeStatus(status) {
+	return String(status || "").trim().toUpperCase();
+}
+
+function isTerminalStatus(status) {
+	const normalized = normalizeStatus(status);
+	return normalized === "COMPLETED" || normalized === "FAILED";
+}
+
+function isPendingStatus(status) {
+	const normalized = normalizeStatus(status);
+	return normalized === "CREATED" || normalized === "VALIDATED" || normalized === "SENT" || normalized === "PENDING";
+}
+
+function delay(ms) {
+	return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function resolvePaymentParty(payment, role, accountMap) {
+	const isSource = role === "source";
+	const idKeys = isSource ? ["sourceAccountId"] : ["destinationAccountId"];
+	const nameKeys = isSource ? ["senderName", "sender"] : ["receiverName", "receiver"];
+	const accountKeys = isSource ? ["senderAccount", "fromAccount"] : ["receiverAccount", "toAccount"];
+	const bankKeys = isSource ? ["senderBank", "fromBank"] : ["receiverBank", "toBank"];
+
+	const accountId = resolveField(payment, idKeys, "");
+	const mappedAccount = accountMap.get(String(accountId));
+
+	return {
+		accountId,
+		name: resolveField(payment, nameKeys, mappedAccount?.accountHolderName || mappedAccount?.account_holder_name || "--"),
+		accountNumber: resolveField(payment, accountKeys, mappedAccount?.accountNumber || mappedAccount?.account_number || "--"),
+		bank: resolveField(payment, bankKeys, mappedAccount?.bankName || mappedAccount?.bank_name || "--"),
+		currency: mappedAccount?.currency || resolveField(payment, ["currency"], "--")
+	};
 }
 
 async function initializePaymentsPage() {
@@ -194,7 +240,7 @@ async function initializePaymentsPage() {
 	const destinationAccountSelect = document.getElementById("destinationAccountId");
 	let createPanelOpen = false;
 	let availableAccounts = [];
-
+	let accountMap = new Map();
 	let allPayments = [];
 	let filteredPayments = [];
 
@@ -207,10 +253,10 @@ async function initializePaymentsPage() {
 		};
 
 		rows.forEach((payment) => {
-			const status = String(resolveField(payment, ["status"], "")).toUpperCase();
+			const status = normalizeStatus(resolveField(payment, ["status"], ""));
 			if (status === "COMPLETED") totals.completed += 1;
-			if (status === "PENDING") totals.pending += 1;
 			if (status === "FAILED") totals.failed += 1;
+			if (isPendingStatus(status)) totals.pending += 1;
 		});
 
 		setTextById("kpiTotalPayments", String(totals.total));
@@ -222,18 +268,25 @@ async function initializePaymentsPage() {
 	function renderRows(rows) {
 		tableBody.innerHTML = rows.map((payment) => {
 			const id = resolveField(payment, ["paymentId", "id"], "--");
-			const sender = resolveField(payment, ["senderName", "sender", "fromAccount", "sourceAccountId"], "--");
-			const receiver = resolveField(payment, ["receiverName", "receiver", "toAccount", "destinationAccountId"], "--");
+			const sender = resolvePaymentParty(payment, "source", accountMap);
+			const receiver = resolvePaymentParty(payment, "destination", accountMap);
 			const amount = resolveField(payment, ["amount"], "--");
 			const currency = resolveField(payment, ["currency"], "--");
 			const status = resolveField(payment, ["status"], "CREATED");
 			const createdAt = resolveField(payment, ["createdAt", "createdDate", "createdOn"], "--");
+			const reference = resolveField(payment, ["reference"], "--");
 
 			return `
 				<tr>
 					<td>${escapeHtml(id)}</td>
-					<td>${escapeHtml(sender)}</td>
-					<td>${escapeHtml(receiver)}</td>
+					<td>
+						<strong>${escapeHtml(sender.name)}</strong><br>
+						<small>${escapeHtml(sender.accountNumber)}</small>
+					</td>
+					<td>
+						<strong>${escapeHtml(receiver.name)}</strong><br>
+						<small>${escapeHtml(receiver.accountNumber)}</small>
+					</td>
 					<td>${escapeHtml(formatAmount(amount))}</td>
 					<td>${escapeHtml(currency)}</td>
 					<td><span class="status-badge ${getStatusClass(status)}">${escapeHtml(status)}</span></td>
@@ -250,8 +303,9 @@ async function initializePaymentsPage() {
 
 		filteredPayments = allPayments.filter((payment) => {
 			const id = String(resolveField(payment, ["paymentId", "id"], "")).toLowerCase();
-			const status = String(resolveField(payment, ["status"], "")).toUpperCase();
-			const searchMatch = !searchTerm || id.includes(searchTerm);
+			const reference = String(resolveField(payment, ["reference"], "")).toLowerCase();
+			const status = normalizeStatus(resolveField(payment, ["status"], ""));
+			const searchMatch = !searchTerm || id.includes(searchTerm) || reference.includes(searchTerm);
 			const statusMatch = selectedStatus === "ALL" || status === selectedStatus;
 			return searchMatch && statusMatch;
 		});
@@ -280,7 +334,16 @@ async function initializePaymentsPage() {
 		if (tableSection) tableSection.hidden = true;
 
 		try {
-			allPayments = await getPayments();
+			const [payments, accounts] = await Promise.all([
+				getPayments(),
+				getAccounts().catch(() => [])
+			]);
+
+			allPayments = Array.isArray(payments) ? payments : [];
+			if (Array.isArray(accounts) && accounts.length > 0) {
+				availableAccounts = accounts;
+				accountMap = new Map(accounts.map((account) => [String(account.accountId ?? account.account_id), account]));
+			}
 			applyFilters();
 		} catch (error) {
 			console.error("Error loading payments:", error);
@@ -327,6 +390,10 @@ async function initializePaymentsPage() {
 
 		try {
 			const input = readCreatePaymentForm(createPaymentForm);
+			if (!input.idempotencyKey) {
+				input.idempotencyKey = generateIdempotencyKey();
+			}
+
 			const validationError = validateCreatePaymentInput(input);
 			if (validationError) {
 				showCreatePaymentMessage("error", validationError);
@@ -339,19 +406,29 @@ async function initializePaymentsPage() {
 			const createdPayment = await createPayment({
 				...input,
 				sourceAccount,
-				destinationAccount
+				destinationAccount,
+				paymentMethod: "Account Transfer"
 			});
 			const paymentId = createdPayment?.paymentId || createdPayment?.id;
-			showCreatePaymentMessage("success", `Payment ${paymentId} created successfully.`);
+			const status = normalizeStatus(createdPayment?.status || "CREATED");
+
+			showCreatePaymentMessage(
+				status === "FAILED" ? "error" : "success",
+				status === "FAILED"
+					? `Payment ${paymentId} failed validation. Opening details page...`
+					: `Payment ${paymentId} created successfully. Opening lifecycle view...`
+			);
+
 			resetCreateFormState();
 			setCreatePanelVisible(true);
+			await loadPaymentsData();
 
 			window.setTimeout(() => {
-				window.location.href = `payment_details.html?id=${encodeURIComponent(paymentId)}`;
+				window.location.href = `payment_details.html?id=${encodeURIComponent(paymentId)}&autoProcess=1`;
 			}, 900);
 		} catch (error) {
 			console.error("Create payment failed:", error);
-			showCreatePaymentMessage("error", "Unable to create payment right now. Please try again.");
+			showCreatePaymentMessage("error", error.message || "Unable to create payment right now. Please try again.");
 		} finally {
 			if (createPaymentSubmitButton) {
 				createPaymentSubmitButton.disabled = false;
@@ -363,6 +440,7 @@ async function initializePaymentsPage() {
 	async function loadAccountsForCreatePayment() {
 		try {
 			availableAccounts = await getAccounts();
+			accountMap = new Map(availableAccounts.map((account) => [String(account.accountId ?? account.account_id), account]));
 			populateAccountSelect(sourceAccountSelect, availableAccounts, "Select sender account");
 			populateAccountSelect(destinationAccountSelect, availableAccounts, "Select receiver account");
 		} catch (error) {
@@ -375,22 +453,26 @@ async function initializePaymentsPage() {
 	closeCreateButton?.addEventListener("click", () => setCreatePanelVisible(false));
 	createPaymentForm?.addEventListener("submit", handleCreatePaymentSubmit);
 
-	loadAccountsForCreatePayment();
-	loadPaymentsData();
+	await loadAccountsForCreatePayment();
+	await loadPaymentsData();
 }
 
 function buildHistoryFallback(payment) {
+	if (Array.isArray(payment?.history) && payment.history.length > 0) {
+		return payment.history;
+	}
+
 	const createdDate = resolveField(payment, ["createdAt", "createdDate", "createdOn"], null);
 	const status = resolveField(payment, ["status"], "CREATED");
 	const updatedDate = resolveField(payment, ["updatedAt", "updatedDate", "lastUpdated"], null);
 
 	const timeline = [];
 	if (createdDate) {
-		timeline.push({ status: "CREATED", timestamp: createdDate, note: "Payment created." });
+		timeline.push({ oldStatus: null, newStatus: "CREATED", changedAt: createdDate, remarks: "Payment created." });
 	}
 
-	if (status && status !== "CREATED") {
-		timeline.push({ status, timestamp: updatedDate || createdDate, note: "Status updated." });
+	if (status && normalizeStatus(status) !== "CREATED") {
+		timeline.push({ oldStatus: "CREATED", newStatus: status, changedAt: updatedDate || createdDate, remarks: "Status updated." });
 	}
 
 	return timeline;
@@ -417,9 +499,9 @@ function renderTimeline(historyRows) {
 	}
 
 	timeline.innerHTML = historyRows.map((event) => {
-		const status = resolveField(event, ["status", "stage"], "CREATED");
-		const timestamp = resolveField(event, ["timestamp", "createdAt", "eventTime", "date"], "--");
-		const note = resolveField(event, ["note", "message", "description", "remarks"], "Status transition recorded.");
+		const status = resolveField(event, ["newStatus", "status", "stage"], "CREATED");
+		const timestamp = resolveField(event, ["changedAt", "timestamp", "createdAt", "eventTime", "date"], "--");
+		const note = resolveField(event, ["remarks", "note", "message", "description"], "Status transition recorded.");
 
 		return `
 			<li class="timeline-item">
@@ -434,8 +516,50 @@ function renderTimeline(historyRows) {
 	}).join("");
 }
 
-function populatePaymentDetails(payment) {
-	const status = String(resolveField(payment, ["status"], "CREATED")).toUpperCase();
+function updateLifecycleCard(payment, isProcessing) {
+	const card = document.getElementById("lifecycleSimulationCard");
+	const message = document.getElementById("lifecycleCurrentMessage");
+	const hint = document.getElementById("lifecycleScenarioHint");
+
+	if (!card || !message || !hint) {
+		return;
+	}
+
+	card.hidden = false;
+
+	const status = normalizeStatus(resolveField(payment, ["status"], "CREATED"));
+	const scenario = resolveField(payment, ["_simulationMode"], "AUTO_SUCCESS");
+
+	if (isProcessing) {
+		message.textContent = `Payment is currently being processed. Current stage: ${status}.`;
+	} else if (status === "COMPLETED") {
+		message.textContent = "Payment reached COMPLETED. Funds are considered settled in this demo flow.";
+	} else if (status === "FAILED") {
+		message.textContent = `Payment finished as FAILED. ${resolveField(payment, ["errorMessage"], "Review the timeline for details.")}`;
+	} else {
+		message.textContent = `Payment is waiting at ${status}.`;
+	}
+
+	const scenarioMap = {
+		AUTO_SUCCESS: "Scenario selected: Auto Success — the page will move the payment to COMPLETED.",
+		NETWORK_FAIL: "Scenario selected: Gateway Timeout / Network Failure — the page will fail the payment after SENT.",
+		BANK_FAIL: "Scenario selected: Bank Rejection — the page will fail the payment at the completion stage."
+	};
+
+	hint.textContent = scenarioMap[String(scenario).toUpperCase()] || "This page can automatically step a new payment through the demo lifecycle.";
+}
+
+async function enrichPartyDetails(payment) {
+	const [sourceAccount, destinationAccount] = await Promise.all([
+		payment.sourceAccountId ? getAccountById(payment.sourceAccountId).catch(() => null) : Promise.resolve(null),
+		payment.destinationAccountId ? getAccountById(payment.destinationAccountId).catch(() => null) : Promise.resolve(null)
+	]);
+
+	return { sourceAccount, destinationAccount };
+}
+
+function populatePaymentDetails(payment, sourceAccount, destinationAccount) {
+	const status = normalizeStatus(resolveField(payment, ["status"], "CREATED"));
 	const amount = resolveField(payment, ["amount"], "--");
 	const currency = resolveField(payment, ["currency"], "--");
 	const fee = resolveField(payment, ["fee", "transactionFee"], 0);
@@ -445,24 +569,24 @@ function populatePaymentDetails(payment) {
 	setTextById("detailReferenceId", resolveField(payment, ["reference", "referenceId", "transactionId", "externalRef"]));
 	setTextById("detailCreatedAt", formatDateTime(resolveField(payment, ["createdAt", "createdDate", "createdOn"], null)));
 	setTextById("detailUpdatedAt", formatDateTime(resolveField(payment, ["updatedAt", "updatedDate", "lastUpdated"], null)));
-	setTextById("detailPaymentMethod", resolveField(payment, ["paymentMethod", "method", "type"]));
+	setTextById("detailPaymentMethod", resolveField(payment, ["paymentMethod", "method", "type"], "Account Transfer"));
 
-	setTextById("senderName", resolveField(payment, ["senderName", "sender", "fromName", "sourceAccountId"]));
-	setTextById("senderAccount", resolveField(payment, ["senderAccount", "fromAccount", "sourceAccountId"]));
-	setTextById("senderBank", resolveField(payment, ["senderBank", "fromBank"]));
-	setTextById("senderCountry", resolveField(payment, ["senderCountry", "fromCountry"]));
+	setTextById("senderName", resolveField(payment, ["senderName"], sourceAccount?.accountHolderName || sourceAccount?.account_holder_name || "--"));
+	setTextById("senderAccount", resolveField(payment, ["senderAccount"], sourceAccount?.accountNumber || sourceAccount?.account_number || resolveField(payment, ["sourceAccountId"], "--")));
+	setTextById("senderBank", resolveField(payment, ["senderBank"], sourceAccount?.bankName || sourceAccount?.bank_name || "--"));
+	setTextById("senderCountry", resolveField(payment, ["senderCountry"], sourceAccount?.currency || "--"));
 
-	setTextById("receiverName", resolveField(payment, ["receiverName", "receiver", "toName", "destinationAccountId"]));
-	setTextById("receiverAccount", resolveField(payment, ["receiverAccount", "toAccount", "destinationAccountId"]));
-	setTextById("receiverBank", resolveField(payment, ["receiverBank", "toBank"]));
-	setTextById("receiverCountry", resolveField(payment, ["receiverCountry", "toCountry"]));
+	setTextById("receiverName", resolveField(payment, ["receiverName"], destinationAccount?.accountHolderName || destinationAccount?.account_holder_name || "--"));
+	setTextById("receiverAccount", resolveField(payment, ["receiverAccount"], destinationAccount?.accountNumber || destinationAccount?.account_number || resolveField(payment, ["destinationAccountId"], "--")));
+	setTextById("receiverBank", resolveField(payment, ["receiverBank"], destinationAccount?.bankName || destinationAccount?.bank_name || "--"));
+	setTextById("receiverCountry", resolveField(payment, ["receiverCountry"], destinationAccount?.currency || "--"));
 
 	setTextById("detailAmount", formatAmount(amount));
 	setTextById("detailCurrency", currency);
 	setTextById("detailFee", formatAmount(fee));
 	setTextById("detailNetAmount", Number.isFinite(netAmount) ? formatAmount(netAmount) : "--");
-	setTextById("detailPurpose", resolveField(payment, ["purpose", "description", "paymentPurpose"]));
-	setTextById("detailChannel", resolveField(payment, ["channel", "source", "origin"]));
+	setTextById("detailPurpose", resolveField(payment, ["purpose", "description", "paymentPurpose", "reference"], "General transfer"));
+	setTextById("detailChannel", resolveField(payment, ["channel", "source", "origin"], "Frontend Demo"));
 
 	const statusBadge = document.getElementById("detailStatusBadge");
 	if (statusBadge) {
@@ -490,6 +614,80 @@ function populatePaymentDetails(payment) {
 	}
 }
 
+function getSimulationOutcome(payment) {
+	const scenario = normalizeStatus(resolveField(payment, ["_simulationMode"], "AUTO_SUCCESS"));
+	if (scenario === "NETWORK_FAIL") {
+		return {
+			status: "FAILED",
+			errorCode: "NETWORK_ERROR",
+			errorMessage: "Gateway timeout while sending payment to processor.",
+			failureStage: "SENT",
+			retryable: true,
+			remarks: "Gateway timeout while sending payment to processor."
+		};
+	}
+
+	if (scenario === "BANK_FAIL") {
+		return {
+			status: "FAILED",
+			errorCode: "BANK_REJECTED",
+			errorMessage: "Receiving bank rejected the transaction during final settlement.",
+			failureStage: "COMPLETION",
+			retryable: false,
+			remarks: "Receiving bank rejected the transaction during final settlement."
+		};
+	}
+
+	return {
+		status: "COMPLETED",
+		remarks: "Payment completed successfully. Funds have been settled."
+	};
+}
+
+async function drivePaymentLifecycle(paymentId) {
+	let payment = await getPaymentById(paymentId);
+	updateLifecycleCard(payment, true);
+
+	if (isTerminalStatus(payment.status)) {
+		updateLifecycleCard(payment, false);
+		return payment;
+	}
+
+	if (normalizeStatus(payment.status) === "CREATED") {
+		await delay(1200);
+		payment = await updatePaymentStatus(paymentId, "VALIDATED", {
+			changedBy: "processor",
+			remarks: "Validation checks passed."
+		});
+		updateLifecycleCard(payment, true);
+	}
+
+	if (normalizeStatus(payment.status) === "VALIDATED") {
+		await delay(1400);
+		payment = await updatePaymentStatus(paymentId, "SENT", {
+			changedBy: "processor",
+			remarks: "Payment sent to gateway for settlement."
+		});
+		updateLifecycleCard(payment, true);
+	}
+
+	if (normalizeStatus(payment.status) === "SENT") {
+		await delay(1800);
+		const outcome = getSimulationOutcome(payment);
+		payment = await updatePaymentStatus(paymentId, outcome.status, {
+			changedBy: "processor",
+			remarks: outcome.remarks,
+			errorCode: outcome.errorCode,
+			errorMessage: outcome.errorMessage,
+			failureStage: outcome.failureStage,
+			retryable: outcome.retryable
+		});
+	}
+
+	updateLifecycleCard(payment, false);
+	return payment;
+}
+
 async function initializePaymentDetailsPage() {
 	const detailsRoot = document.getElementById("detailsContent");
 	if (!detailsRoot) {
@@ -498,7 +696,23 @@ async function initializePaymentDetailsPage() {
 
 	const loading = document.getElementById("detailsLoading");
 	const error = document.getElementById("detailsError");
+	const refreshButton = document.getElementById("refreshLifecycleBtn");
 	const paymentId = readPaymentIdFromQuery();
+	const autoProcess = shouldAutoProcessFromQuery();
+
+	async function loadAndRender() {
+		const payment = await getPaymentById(paymentId);
+		const history = await getPaymentHistory(paymentId).catch(() => []);
+		const parties = await enrichPartyDetails(payment);
+
+		populatePaymentDetails(payment || {}, parties.sourceAccount, parties.destinationAccount);
+		renderTimeline(history.length ? history : buildHistoryFallback(payment || {}));
+		updateLifecycleCard(payment || {}, false);
+
+		if (detailsRoot) detailsRoot.hidden = false;
+		if (error) error.hidden = true;
+		return payment;
+	}
 
 	if (!paymentId) {
 		if (loading) loading.hidden = true;
@@ -506,17 +720,23 @@ async function initializePaymentDetailsPage() {
 		return;
 	}
 
+	refreshButton?.addEventListener("click", async () => {
+		try {
+			await loadAndRender();
+		} catch (apiError) {
+			console.error("Error refreshing payment details:", apiError);
+			if (error) error.hidden = false;
+		}
+	});
+
 	try {
-		const [payment, history] = await Promise.all([
-			getPaymentById(paymentId),
-			getPaymentHistory(paymentId).catch(() => [])
-		]);
+		let payment = await loadAndRender();
 
-		populatePaymentDetails(payment || {});
-		renderTimeline(history.length ? history : buildHistoryFallback(payment || {}));
-
-		if (detailsRoot) detailsRoot.hidden = false;
-		if (error) error.hidden = true;
+		if (autoProcess && !isTerminalStatus(payment.status)) {
+			updateLifecycleCard(payment, true);
+			payment = await drivePaymentLifecycle(paymentId);
+			await loadAndRender();
+		}
 	} catch (apiError) {
 		console.error("Error loading payment details:", apiError);
 		if (error) error.hidden = false;

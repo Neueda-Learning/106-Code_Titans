@@ -136,8 +136,25 @@
           </div>
 
           <div class="form-field">
+            <label for="processingScenario">Processing Scenario</label>
+            <select id="processingScenario" name="processingScenario">
+              <option value="AUTO_SUCCESS">Auto Success</option>
+              <option value="NETWORK_FAIL">Gateway Timeout / Network Failure</option>
+              <option value="BANK_FAIL">Bank Rejection</option>
+            </select>
+          </div>
+
+          <div class="form-field">
             <label for="idempotencyKey">Idempotency Key</label>
             <input id="idempotencyKey" name="idempotencyKey" type="text" placeholder="Unique request key">
+          </div>
+
+          <div class="form-field form-span-2">
+            <p class="create-payment-help">
+              The payment is first created in the backend, then this demo page will drive it through
+              <strong> CREATED → VALIDATED → SENT → COMPLETED</strong>
+              or move it to <strong>FAILED</strong> based on the selected scenario.
+            </p>
           </div>
 
           <div class="form-actions">
