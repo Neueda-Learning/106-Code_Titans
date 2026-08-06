@@ -1,0 +1,64 @@
+pipeline {
+	agent any
+
+	environment {
+		BACKEND_IMAGE = 'code-titans-backend'
+	}
+
+	stages {
+		stage('Checkout') {
+			steps {
+				checkout scm
+			}
+		}
+
+		stage('Build & Test Backend') {
+			steps {
+				sh 'mvn clean verify -B'
+			}
+			post {
+				always {
+					junit 'target/surefire-reports/*.xml'
+				}
+			}
+		}
+
+		stage('Build Backend Image') {
+			steps {
+				sh 'docker build --target backend -t ${BACKEND_IMAGE}:${BUILD_NUMBER} -t ${BACKEND_IMAGE}:latest .'
+			}
+		}
+
+		stage('Deploy With Docker Compose') {
+			when {
+				expression {
+					fileExists('docker-compose.yml') || fileExists('docker-compose.yaml')
+				}
+			}
+			steps {
+				sh 'docker compose up -d --build --remove-orphans'
+				sh 'docker compose ps'
+			}
+		}
+
+		stage('Deployment Skipped') {
+			when {
+				expression {
+					!fileExists('docker-compose.yml') && !fileExists('docker-compose.yaml')
+				}
+			}
+			steps {
+				echo 'No docker-compose.yml or docker-compose.yaml found. Backend image was built, but deployment was skipped.'
+			}
+		}
+	}
+
+	post {
+		success {
+			echo 'Pipeline completed successfully.'
+		}
+		failure {
+			echo 'Pipeline failed.'
+		}
+	}
+}
