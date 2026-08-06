@@ -2,17 +2,11 @@ pipeline {
 
     agent any
 
-    environment {
-        GIT_URL = 'https://github.com/Neueda-Learning/106-Code_Titans.git'
-        BRANCH = 'main'
-    }
-
     stages {
 
         stage('Checkout Source') {
             steps {
-                git branch: "${BRANCH}",
-                    url: "${GIT_URL}"
+                checkout scm
             }
         }
 
@@ -21,23 +15,38 @@ pipeline {
                 sh 'chmod +x ./mvnw && ./mvnw clean package -DskipTests -B'
             }
         }
-       
+
 
         stage('Stop Existing Containers') {
             steps {
-                sh 'docker-compose down || true'
+                script {
+                    def appDir = fileExists('backend/docker-compose.yml') ? 'backend' : '.'
+                    dir(appDir) {
+                        sh 'docker compose down || true'
+                    }
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker-compose build --no-cache'
+                script {
+                    def appDir = fileExists('backend/docker-compose.yml') ? 'backend' : '.'
+                    dir(appDir) {
+                        sh 'docker compose build --no-cache'
+                    }
+                }
             }
         }
 
         stage('Deploy') {
             steps {
-                sh 'docker-compose up -d'
+                script {
+                    def appDir = fileExists('backend/docker-compose.yml') ? 'backend' : '.'
+                    dir(appDir) {
+                        sh 'docker compose up -d'
+                    }
+                }
             }
         }
 
