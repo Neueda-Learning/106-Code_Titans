@@ -12,12 +12,7 @@ pipeline {
 
         stage('Build Spring Boot') {
             steps {
-                script {
-                    def appDir = fileExists('backend/pom.xml') ? 'backend' : '.'
-                    dir(appDir) {
-                        sh 'mvn clean package -DskipTests -B'
-                    }
-                }
+                sh 'chmod +x ./mvnw && ./mvnw clean package -DskipTests -B'
             }
         }
 
