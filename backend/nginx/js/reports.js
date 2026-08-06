@@ -109,7 +109,8 @@ function updateHourlyChart(payments) {
 // ─── Tables ────────────────────────────────────────────────────────────────
 
 function updateSendersTable(payments, accountIndex) {
-	const map = groupByResolvedParty(payments, "sender", accountIndex);
+	const completedPayments = (payments || []).filter((p) => p.status === "COMPLETED");
+	const map = groupByResolvedParty(completedPayments, "sender", accountIndex);
 	const rows = topN(map, 5);
 	setTableRows(
 		"senders-tbody",
@@ -118,15 +119,16 @@ function updateSendersTable(payments, accountIndex) {
         <td>${rankBadge(i)}</td>
         <td>${esc(name)}</td>
         <td>${list.length.toLocaleString()}</td>
-        <td class="amount">${formatMoney(sumAmount(list))}</td>
-        <td>${formatMoney(avg(list))}</td>
+		<td class="amount">${formatMoney(sumAmount(list), detectCurrency(list))}</td>
+		<td>${formatMoney(avg(list), detectCurrency(list))}</td>
       </tr>`
 		)
 	);
 }
 
 function updateReceiversTable(payments, accountIndex) {
-	const map = groupByResolvedParty(payments, "receiver", accountIndex);
+	const completedPayments = (payments || []).filter((p) => p.status === "COMPLETED");
+	const map = groupByResolvedParty(completedPayments, "receiver", accountIndex);
 	const rows = topN(map, 5);
 	setTableRows(
 		"receivers-tbody",
@@ -135,8 +137,8 @@ function updateReceiversTable(payments, accountIndex) {
         <td>${rankBadge(i)}</td>
         <td>${esc(name)}</td>
         <td>${list.length.toLocaleString()}</td>
-        <td class="amount">${formatMoney(sumAmount(list))}</td>
-        <td>${formatMoney(avg(list))}</td>
+		<td class="amount">${formatMoney(sumAmount(list), detectCurrency(list))}</td>
+		<td>${formatMoney(avg(list), detectCurrency(list))}</td>
       </tr>`
 		)
 	);
@@ -156,7 +158,7 @@ function updateLargestTable(payments, accountIndex) {
         <td>${esc(p.paymentId)}</td>
 		<td>${esc(resolvePartyName(p, "sender", accountIndex))}</td>
 		<td>${esc(resolvePartyName(p, "receiver", accountIndex))}</td>
-        <td class="amount">${formatMoney(p.amount)}</td>
+		<td class="amount">${formatMoney(p.amount, p.currency)}</td>
         <td>${statusBadge(p.status)}</td>
         <td>${formatDate(p.createdAt)}</td>
       </tr>`
@@ -338,6 +340,22 @@ function avg(list) {
 	return list.length ? sumAmount(list) / list.length : 0;
 }
 
+function detectCurrency(list) {
+	const codes = Array.from(
+		new Set(
+			(list || [])
+				.map((p) => (p?.currency ? String(p.currency).toUpperCase() : ""))
+				.filter(Boolean)
+		)
+	);
+
+	if (codes.length === 1) {
+		return codes[0];
+	}
+
+	return null;
+}
+
 function pct(part, total) {
 	if (!total) return "0.0";
 	return ((part / total) * 100).toFixed(1);
@@ -345,14 +363,29 @@ function pct(part, total) {
 
 // ─── Formatting Helpers ────────────────────────────────────────────────────
 
-function formatMoney(n) {
-	return (
-		"$" +
-		Number(n).toLocaleString("en-US", {
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		})
-	);
+function formatMoney(n, currencyCode) {
+	const amount = Number(n) || 0;
+	const code = currencyCode ? String(currencyCode).toUpperCase() : null;
+
+	if (code) {
+		try {
+			return new Intl.NumberFormat("en-US", {
+				style: "currency",
+				currency: code,
+				minimumFractionDigits: 0,
+				maximumFractionDigits: 0,
+			}).format(amount);
+		} catch {
+			// Fall through to generic formatting for unknown currency codes.
+		}
+	}
+
+	const plain = amount.toLocaleString("en-US", {
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
+	});
+
+	return code ? `${code} ${plain}` : plain;
 }
 
 function formatDate(iso) {
