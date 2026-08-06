@@ -9,16 +9,20 @@ document.addEventListener('DOMContentLoaded', loadReportsData);
 async function loadReportsData() {
 	showLoading(true);
 	try {
-		const payments = await getPayments();
+		const [payments, accounts] = await Promise.all([
+			getPayments(),
+			getAccounts().catch(() => [])
+		]);
+		const accountIndex = buildAccountIndex(accounts);
 		const stats = computeStats(payments);
 
 		updateSummaryCards(stats);
 		updateStatusChart(stats);
 		updateDailyChart(payments);
 		updateHourlyChart(payments);
-		updateSendersTable(payments);
-		updateReceiversTable(payments);
-		updateLargestTable(payments);
+		updateSendersTable(payments, accountIndex);
+		updateReceiversTable(payments, accountIndex);
+		updateLargestTable(payments, accountIndex);
 		updateFailureTable(payments);
 	} catch (err) {
 		console.error("Reports data load failed:", err);
@@ -104,8 +108,9 @@ function updateHourlyChart(payments) {
 
 // ─── Tables ────────────────────────────────────────────────────────────────
 
-function updateSendersTable(payments) {
-	const map = groupBy(payments, "senderName");
+function updateSendersTable(payments, accountIndex) {
+	const completedPayments = (payments || []).filter((p) => p.status === "COMPLETED");
+	const map = groupByResolvedParty(completedPayments, "sender", accountIndex);
 	const rows = topN(map, 5);
 	setTableRows(
 		"senders-tbody",
@@ -114,15 +119,16 @@ function updateSendersTable(payments) {
         <td>${rankBadge(i)}</td>
         <td>${esc(name)}</td>
         <td>${list.length.toLocaleString()}</td>
-        <td class="amount">${formatMoney(sumAmount(list))}</td>
-        <td>${formatMoney(avg(list))}</td>
+		<td class="amount">${formatMoney(sumAmount(list), detectCurrency(list))}</td>
+		<td>${formatMoney(avg(list), detectCurrency(list))}</td>
       </tr>`
 		)
 	);
 }
 
-function updateReceiversTable(payments) {
-	const map = groupBy(payments, "receiverName");
+function updateReceiversTable(payments, accountIndex) {
+	const completedPayments = (payments || []).filter((p) => p.status === "COMPLETED");
+	const map = groupByResolvedParty(completedPayments, "receiver", accountIndex);
 	const rows = topN(map, 5);
 	setTableRows(
 		"receivers-tbody",
@@ -131,15 +137,17 @@ function updateReceiversTable(payments) {
         <td>${rankBadge(i)}</td>
         <td>${esc(name)}</td>
         <td>${list.length.toLocaleString()}</td>
-        <td class="amount">${formatMoney(sumAmount(list))}</td>
-        <td>${formatMoney(avg(list))}</td>
+		<td class="amount">${formatMoney(sumAmount(list), detectCurrency(list))}</td>
+		<td>${formatMoney(avg(list), detectCurrency(list))}</td>
       </tr>`
 		)
 	);
 }
 
-function updateLargestTable(payments) {
-	const sorted = [...payments]
+function updateLargestTable(payments, accountIndex) {
+	const sorted = payments
+		.filter((p) => p.status === "COMPLETED")
+		.slice()
 		.sort((a, b) => b.amount - a.amount)
 		.slice(0, 10);
 
@@ -148,9 +156,9 @@ function updateLargestTable(payments) {
 		sorted.map((p) =>
 			`<tr>
         <td>${esc(p.paymentId)}</td>
-        <td>${esc(p.senderName || "—")}</td>
-        <td>${esc(p.receiverName || "—")}</td>
-        <td class="amount">${formatMoney(p.amount)}</td>
+		<td>${esc(resolvePartyName(p, "sender", accountIndex))}</td>
+		<td>${esc(resolvePartyName(p, "receiver", accountIndex))}</td>
+		<td class="amount">${formatMoney(p.amount, p.currency)}</td>
         <td>${statusBadge(p.status)}</td>
         <td>${formatDate(p.createdAt)}</td>
       </tr>`
@@ -181,11 +189,10 @@ function updateFailureTable(payments) {
           <td>${esc(reason)}</td>
           <td><span class="badge danger">${count}</span></td>
           <td>${pct(count, total)}%</td>
-          <td>—</td>
         </tr>`
 				)
 			: [
-					`<tr><td colspan="4" style="text-align:center;color:#22C55E;padding:20px;">
+					`<tr><td colspan="3" style="text-align:center;color:#22C55E;padding:20px;">
           <i class="fas fa-check-circle" style="margin-right:6px;"></i>No failures recorded
         </td></tr>`,
 				]
@@ -234,6 +241,90 @@ function groupBy(arr, key) {
 	}, {});
 }
 
+function groupByResolvedParty(payments, role, accountIndex) {
+	return (payments || []).reduce((map, payment) => {
+		const resolved = resolvePartyName(payment, role, accountIndex);
+		const key = resolved && resolved !== "—" ? resolved : "Unknown";
+		if (!map[key]) map[key] = [];
+		map[key].push(payment);
+		return map;
+	}, {});
+}
+
+function buildAccountIndex(accounts) {
+	const byId = new Map();
+	const byNumber = new Map();
+
+	(accounts || []).forEach((account) => {
+		const label =
+			account.accountHolderName ||
+			account.holderName ||
+			account.name ||
+			account.accountNumber ||
+			"Unknown";
+
+		const id = account.accountId ?? account.id;
+		if (id !== undefined && id !== null) {
+			byId.set(String(id), label);
+		}
+
+		const number = account.accountNumber ?? account.number;
+		if (number !== undefined && number !== null && number !== "") {
+			byNumber.set(String(number), label);
+		}
+	});
+
+	return { byId, byNumber };
+}
+
+function resolvePartyName(payment, role, accountIndex) {
+	if (role === "sender") {
+		const direct = payment.senderName || payment.sourceAccountName;
+		if (direct) return direct;
+
+		const id = payment.sourceAccountId ?? payment.senderAccountId ?? payment.senderId;
+		if (id !== undefined && id !== null) {
+			const mappedById = accountIndex?.byId?.get(String(id));
+			if (mappedById) return mappedById;
+		}
+
+		const number = payment.senderAccount ?? payment.sourceAccountNumber;
+		if (number) {
+			const mappedByNumber = accountIndex?.byNumber?.get(String(number));
+			if (mappedByNumber) return mappedByNumber;
+			return `Account ${number}`;
+		}
+
+		if (id !== undefined && id !== null) {
+			return `Account ${id}`;
+		}
+
+		return "—";
+	}
+
+	const direct = payment.receiverName || payment.destinationAccountName;
+	if (direct) return direct;
+
+	const id = payment.destinationAccountId ?? payment.receiverAccountId ?? payment.receiverId;
+	if (id !== undefined && id !== null) {
+		const mappedById = accountIndex?.byId?.get(String(id));
+		if (mappedById) return mappedById;
+	}
+
+	const number = payment.receiverAccount ?? payment.destinationAccountNumber;
+	if (number) {
+		const mappedByNumber = accountIndex?.byNumber?.get(String(number));
+		if (mappedByNumber) return mappedByNumber;
+		return `Account ${number}`;
+	}
+
+	if (id !== undefined && id !== null) {
+		return `Account ${id}`;
+	}
+
+	return "—";
+}
+
 // Sort map entries by list length descending, return top n
 function topN(map, n) {
 	return Object.entries(map)
@@ -249,6 +340,22 @@ function avg(list) {
 	return list.length ? sumAmount(list) / list.length : 0;
 }
 
+function detectCurrency(list) {
+	const codes = Array.from(
+		new Set(
+			(list || [])
+				.map((p) => (p?.currency ? String(p.currency).toUpperCase() : ""))
+				.filter(Boolean)
+		)
+	);
+
+	if (codes.length === 1) {
+		return codes[0];
+	}
+
+	return null;
+}
+
 function pct(part, total) {
 	if (!total) return "0.0";
 	return ((part / total) * 100).toFixed(1);
@@ -256,14 +363,29 @@ function pct(part, total) {
 
 // ─── Formatting Helpers ────────────────────────────────────────────────────
 
-function formatMoney(n) {
-	return (
-		"$" +
-		Number(n).toLocaleString("en-US", {
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
-		})
-	);
+function formatMoney(n, currencyCode) {
+	const amount = Number(n) || 0;
+	const code = currencyCode ? String(currencyCode).toUpperCase() : null;
+
+	if (code) {
+		try {
+			return new Intl.NumberFormat("en-US", {
+				style: "currency",
+				currency: code,
+				minimumFractionDigits: 0,
+				maximumFractionDigits: 0,
+			}).format(amount);
+		} catch {
+			// Fall through to generic formatting for unknown currency codes.
+		}
+	}
+
+	const plain = amount.toLocaleString("en-US", {
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
+	});
+
+	return code ? `${code} ${plain}` : plain;
 }
 
 function formatDate(iso) {

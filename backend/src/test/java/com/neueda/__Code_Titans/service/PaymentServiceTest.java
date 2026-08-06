@@ -113,6 +113,60 @@ class PaymentServiceTest {
         assertTrue(updated.isPresent());
         assertEquals("VALIDATED", updated.get().getStatus());
         verify(auditService).recordStatusChange(300L, "CREATED", "VALIDATED", "maker1", "passed checks");
+        verify(accountRepo, never()).updateBalance(anyLong(), any());
+    }
+
+    @Test
+    void updatePaymentStatus_whenTransitionToCompleted_settlesBalancesAndAudits() {
+        Payments current = new Payments();
+        current.setPaymentId(302L);
+        current.setStatus("SENT");
+        current.setSourceAccountId(1L);
+        current.setDestinationAccountId(2L);
+        current.setAmount(new BigDecimal("125.00"));
+
+        Accounts source = account(1L, "USD", new BigDecimal("500.00"));
+        Accounts destination = account(2L, "USD", new BigDecimal("300.00"));
+
+        when(paymentRepo.findById(302L)).thenReturn(Optional.of(current));
+        when(accountRepo.findById(1L)).thenReturn(Optional.of(source));
+        when(accountRepo.findById(2L)).thenReturn(Optional.of(destination));
+        when(accountRepo.updateBalance(1L, new BigDecimal("375.00"))).thenReturn(1);
+        when(accountRepo.updateBalance(2L, new BigDecimal("425.00"))).thenReturn(1);
+        when(paymentRepo.save(any(Payments.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Optional<Payments> updated = paymentService.updatePaymentStatus(302L, "COMPLETED", "maker1", "settled");
+
+        assertTrue(updated.isPresent());
+        assertEquals("COMPLETED", updated.get().getStatus());
+        verify(accountRepo).updateBalance(1L, new BigDecimal("375.00"));
+        verify(accountRepo).updateBalance(2L, new BigDecimal("425.00"));
+        verify(auditService).recordStatusChange(302L, "SENT", "COMPLETED", "maker1", "settled");
+    }
+
+    @Test
+    void updatePaymentStatus_whenTransitionToCompletedAndInsufficientBalance_throwsException() {
+        Payments current = new Payments();
+        current.setPaymentId(303L);
+        current.setStatus("SENT");
+        current.setSourceAccountId(1L);
+        current.setDestinationAccountId(2L);
+        current.setAmount(new BigDecimal("900.00"));
+
+        Accounts source = account(1L, "USD", new BigDecimal("100.00"));
+        Accounts destination = account(2L, "USD", new BigDecimal("300.00"));
+
+        when(paymentRepo.findById(303L)).thenReturn(Optional.of(current));
+        when(accountRepo.findById(1L)).thenReturn(Optional.of(source));
+        when(accountRepo.findById(2L)).thenReturn(Optional.of(destination));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> paymentService.updatePaymentStatus(303L, "COMPLETED", "maker1", "settled"));
+
+        verify(accountRepo, never()).updateBalance(eq(1L), any());
+        verify(accountRepo, never()).updateBalance(eq(2L), any());
+        verify(paymentRepo, never()).save(any(Payments.class));
+        verify(auditService, never()).recordStatusChange(anyLong(), any(), any(), any(), any());
     }
 
     @Test
