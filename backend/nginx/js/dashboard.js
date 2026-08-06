@@ -26,6 +26,10 @@ function formatStatusClass(status) {
 	return `status-${status.toLowerCase()}`;
 }
 
+function formatDisplayStatus(status) {
+	return status === "PENDING" ? "CREATED" : status;
+}
+
 function updateLastRefresh() {
 	const stamp = document.getElementById("lastUpdated");
 	if (!stamp) {
@@ -45,14 +49,10 @@ function updateLastRefresh() {
 function renderSummaryCards(payments) {
 	const total     = payments.length;
 	const completed = payments.filter(p => p.status === "COMPLETED").length;
-	const pending   = payments.filter(p =>
-		p.status === "PENDING" || p.status === "CREATED" ||
-		p.status === "VALIDATED" || p.status === "SENT").length;
 	const failed    = payments.filter(p => p.status === "FAILED").length;
 
 	document.getElementById("totalPayments").textContent     = total.toLocaleString("en-US");
 	document.getElementById("completedPayments").textContent = completed.toLocaleString("en-US");
-	document.getElementById("pendingPayments").textContent   = pending.toLocaleString("en-US");
 	document.getElementById("failedPayments").textContent    = failed.toLocaleString("en-US");
 }
 
@@ -75,7 +75,7 @@ function renderRecentPayments(payments) {
 			<td>${esc(p.senderName   || "—")}</td>
 			<td>${esc(p.receiverName || "—")}</td>
 			<td>${formatCurrency(p.amount, p.currency || "USD")}</td>
-			<td><span class="status-badge ${formatStatusClass(p.status)}">${esc(p.status)}</span></td>
+			<td><span class="status-badge ${formatStatusClass(formatDisplayStatus(p.status))}">${esc(formatDisplayStatus(p.status))}</span></td>
 			<td>${formatDate(p.createdAt)}</td>
 		</tr>`).join("");
 }
@@ -97,13 +97,10 @@ function renderStatusChart(payments) {
 	}
 
 	const completed = payments.filter(p => p.status === "COMPLETED").length;
-	const pending   = payments.filter(p =>
-		p.status === "PENDING" || p.status === "CREATED" ||
-		p.status === "VALIDATED" || p.status === "SENT").length;
 	const failed    = payments.filter(p => p.status === "FAILED").length;
 
 	if (statusChartInstance) {
-		statusChartInstance.data.datasets[0].data = [completed, pending, failed];
+		statusChartInstance.data.datasets[0].data = [completed, failed];
 		statusChartInstance.update();
 		return;
 	}
@@ -111,11 +108,11 @@ function renderStatusChart(payments) {
 	statusChartInstance = new Chart(canvas, {
 		type: "doughnut",
 		data: {
-			labels: ["Completed", "Pending", "Failed"],
+			labels: ["Completed", "Failed"],
 			datasets: [
 				{
-					data: [completed, pending, failed],
-					backgroundColor: ["#22c55e", "#f59e0b", "#ef4444"],
+					data: [completed, failed],
+					backgroundColor: ["#22c55e", "#ef4444"],
 					borderColor: "#ffffff",
 					borderWidth: 4,
 					hoverOffset: 4

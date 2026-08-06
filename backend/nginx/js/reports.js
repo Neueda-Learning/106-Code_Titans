@@ -4,6 +4,17 @@
 
 document.addEventListener('DOMContentLoaded', loadReportsData);
 
+const BASE_CURRENCY = "INR";
+const EXCHANGE_RATES_TO_INR = {
+	INR: 1,
+	USD: 83.12,
+	EUR: 90.48,
+	GBP: 105.67,
+	AED: 22.63,
+	SGD: 61.66,
+	KRW: 14.80
+};
+
 // ─── Entry point ───────────────────────────────────────────────────────────
 
 async function loadReportsData() {
@@ -37,32 +48,27 @@ function computeStats(payments) {
 	const total = payments.length;
 	const completed = payments.filter((p) => p.status === "COMPLETED").length;
 	const failed = payments.filter((p) => p.status === "FAILED").length;
-	const pending = payments.filter(
-		(p) => p.status === "PENDING" || p.status === "CREATED"
-	).length;
-	return { total, completed, failed, pending };
+	return { total, completed, failed };
 }
 
 // ─── Summary Cards ─────────────────────────────────────────────────────────
 
-function updateSummaryCards({ total, completed, failed, pending }) {
+function updateSummaryCards({ total, completed, failed }) {
 	setText("total-count", total.toLocaleString());
 	setText("total-unit", "transactions");
 	setText("completed-count", completed.toLocaleString());
 	setText("completed-unit", pct(completed, total) + "% success rate");
 	setText("failed-count", failed.toLocaleString());
 	setText("failed-unit", pct(failed, total) + "% failure rate");
-	setText("pending-count", pending.toLocaleString());
-	setText("pending-unit", pct(pending, total) + "% in progress");
 }
 
 // ─── Charts ────────────────────────────────────────────────────────────────
 
 // Update the doughnut chart in-place (no destroy/recreate)
-function updateStatusChart({ completed, failed, pending }) {
+function updateStatusChart({ completed, failed }) {
 	const chart = getChartInstance("statusChart");
 	if (!chart) return;
-	chart.data.datasets[0].data = [completed, failed, pending];
+	chart.data.datasets[0].data = [completed, failed];
 	chart.update();
 }
 
@@ -180,20 +186,29 @@ function updateReceiversTable(payments, accountIndex) {
 function updateLargestTable(payments, accountIndex) {
 	const sorted = payments
 		.filter((p) => p.status === "COMPLETED")
+		.map((payment) => ({
+			payment,
+			baseAmount: convertAmountToBaseCurrency(payment.amount, payment.currency)
+		}))
 		.slice()
-		.sort((a, b) => b.amount - a.amount)
+		.sort((a, b) => {
+			const left = Number.isFinite(a.baseAmount) ? a.baseAmount : -1;
+			const right = Number.isFinite(b.baseAmount) ? b.baseAmount : -1;
+			return right - left;
+		})
 		.slice(0, 10);
 
 	setTableRows(
 		"largest-tbody",
-		sorted.map((p) =>
+		sorted.map(({ payment, baseAmount }) =>
 			`<tr>
-        <td>${esc(p.paymentId)}</td>
-		<td>${esc(resolvePartyName(p, "sender", accountIndex))}</td>
-		<td>${esc(resolvePartyName(p, "receiver", accountIndex))}</td>
-		<td class="amount">${formatMoney(p.amount, p.currency)}</td>
-        <td>${statusBadge(p.status)}</td>
-        <td>${formatDate(p.createdAt)}</td>
+        <td>${esc(payment.paymentId)}</td>
+		<td>${esc(resolvePartyName(payment, "sender", accountIndex))}</td>
+		<td>${esc(resolvePartyName(payment, "receiver", accountIndex))}</td>
+		<td class="amount">${formatMoney(payment.amount, payment.currency)}</td>
+		<td class="amount">${formatBaseAmount(baseAmount)}</td>
+        <td>${statusBadge(payment.status)}</td>
+		<td>${formatDate(payment.createdAt)}</td>
       </tr>`
 		)
 	);
@@ -373,6 +388,21 @@ function avg(list) {
 	return list.length ? sumAmount(list) / list.length : 0;
 }
 
+function convertAmountToBaseCurrency(amount, currencyCode) {
+	const numericAmount = Number(amount);
+	if (!Number.isFinite(numericAmount)) {
+		return null;
+	}
+
+	const normalizedCurrency = String(currencyCode || "").trim().toUpperCase();
+	const rate = EXCHANGE_RATES_TO_INR[normalizedCurrency];
+	if (!Number.isFinite(rate)) {
+		return null;
+	}
+
+	return numericAmount * rate;
+}
+
 function detectCurrency(list) {
 	const codes = Array.from(
 		new Set(
@@ -421,6 +451,14 @@ function formatMoney(n, currencyCode) {
 	return code ? `${code} ${plain}` : plain;
 }
 
+function formatBaseAmount(amount) {
+	if (!Number.isFinite(amount)) {
+		return "N/A";
+	}
+
+	return formatMoney(amount, BASE_CURRENCY);
+}
+
 function formatDate(iso) {
 	if (!iso) return "—";
 	return new Date(iso).toLocaleDateString("en-US", {
@@ -445,15 +483,16 @@ function rankBadge(i) {
 }
 
 function statusBadge(status) {
+	const display = status === "PENDING" ? "CREATED" : status;
 	const map = {
 		COMPLETED: "completed",
 		FAILED: "failed",
-		PENDING: "pending",
+		PENDING: "created",
 		CREATED: "created",
 	};
-	const cls = map[status] || "created";
-	const label = status
-		? status.charAt(0) + status.slice(1).toLowerCase()
+	const cls = map[display] || "created";
+	const label = display
+		? display.charAt(0) + display.slice(1).toLowerCase()
 		: "—";
 	return `<span class="status-badge ${cls}">${label}</span>`;
 }
