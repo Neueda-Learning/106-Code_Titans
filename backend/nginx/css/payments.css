@@ -410,6 +410,60 @@ body {
 	border: 1px solid rgba(239, 68, 68, 0.22);
 }
 
+.create-progress {
+	grid-column: span 4;
+	padding: 10px 12px;
+	border: 1px solid #dbe6ff;
+	border-radius: 10px;
+	background: #f8fbff;
+}
+
+.create-progress-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.create-progress-label {
+	margin: 0;
+	font-size: 12px;
+	font-weight: 600;
+	color: #334155;
+}
+
+.create-progress-percent {
+	font-size: 12px;
+	font-weight: 700;
+	color: #1d4ed8;
+}
+
+.create-progress-track {
+	position: relative;
+	width: 100%;
+	height: 10px;
+	border-radius: 999px;
+	overflow: hidden;
+	background: #dbeafe;
+}
+
+.create-progress-fill {
+	height: 100%;
+	width: 0;
+	background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
+	border-radius: 999px;
+	transition: width 0.35s ease;
+}
+
+.create-progress[data-state="completed"] .create-progress-fill {
+	background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+}
+
+.create-progress[data-state="failed"] .create-progress-fill {
+	background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
 .create-payment-help {
 	margin: 0;
 	padding: 12px 14px;
@@ -888,6 +942,10 @@ body {
 		grid-column: span 2;
 	}
 
+	.create-progress {
+		grid-column: span 2;
+	}
+
 	.payments-kpi-grid {
 		grid-template-columns: 1fr;
 		gap: 10px;
@@ -950,6 +1008,10 @@ body {
 
 	.form-actions,
 	.form-span-2 {
+		grid-column: span 1;
+	}
+
+	.create-progress {
 		grid-column: span 1;
 	}
 
