@@ -1,44 +1,42 @@
-version: "3.9"
+version: "3.8"
 
 services:
   mysql:
-    image: mysql:8.0
-    container_name: code-titans-mysql
-    restart: unless-stopped
+    image: mysql:8.4
+    container_name: mysql_container
+    restart: always
+
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-n3u3da!}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-project}
-      MYSQL_USER: ${MYSQL_USER:-appuser}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-apppassword}
+      MYSQL_ROOT_PASSWORD: Neueda@123
+      MYSQL_DATABASE: project
+
     ports:
       - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-       
-    networks:
-      - code-titans-network
-     
 
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: backend
-    container_name: code-titans-backend
-    restart: unless-stopped
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+    networks:
+      - springboot-network
+
+  springboot-app:
+    build: .
+    container_name: springboot_container
+
+    depends_on:
+      - mysql
+
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-project}
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-appuser}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-apppassword}
-      SERVER_PORT: 8082
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:mysql://mysql:3306/project
+      DB_USER: root
+      DB_PASS: Neueda@123
+
     ports:
       - "8082:8082"
-    depends_on:
-      mysql
-        
-    networks:
-      - code-titans-network
 
+    networks:
+      - springboot-network
   nginx:
     build:
       context: ./nginx
@@ -47,13 +45,11 @@ services:
     ports:
       - "8085:80"
     depends_on:
-      - backend
+      - springboot-app
     networks:
-      - code-titans-network
-
+      - springboot-network
 volumes:
-  mysql_data:
+  mysql-data:
 
 networks:
-  code-titans-network:
-    driver: bridge
+  springboot-network:
