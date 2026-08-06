@@ -9,7 +9,11 @@ document.addEventListener('DOMContentLoaded', loadReportsData);
 async function loadReportsData() {
 	showLoading(true);
 	try {
-		const payments = await getPayments();
+		const [payments, accounts] = await Promise.all([
+			getPayments(),
+			getAccounts().catch(() => [])
+		]);
+		const accountIndex = buildAccountIndex(accounts);
 		const stats = computeStats(payments);
 
 		updateSummaryCards(stats);
@@ -18,7 +22,7 @@ async function loadReportsData() {
 		updateHourlyChart(payments);
 		updateSendersTable(payments);
 		updateReceiversTable(payments);
-		updateLargestTable(payments);
+		updateLargestTable(payments, accountIndex);
 		updateFailureTable(payments);
 	} catch (err) {
 		console.error("Reports data load failed:", err);
@@ -138,7 +142,7 @@ function updateReceiversTable(payments) {
 	);
 }
 
-function updateLargestTable(payments) {
+function updateLargestTable(payments, accountIndex) {
 	const sorted = [...payments]
 		.sort((a, b) => b.amount - a.amount)
 		.slice(0, 10);
@@ -148,8 +152,8 @@ function updateLargestTable(payments) {
 		sorted.map((p) =>
 			`<tr>
         <td>${esc(p.paymentId)}</td>
-        <td>${esc(p.senderName || "—")}</td>
-        <td>${esc(p.receiverName || "—")}</td>
+		<td>${esc(resolvePartyName(p, "sender", accountIndex))}</td>
+		<td>${esc(resolvePartyName(p, "receiver", accountIndex))}</td>
         <td class="amount">${formatMoney(p.amount)}</td>
         <td>${statusBadge(p.status)}</td>
         <td>${formatDate(p.createdAt)}</td>
@@ -181,11 +185,10 @@ function updateFailureTable(payments) {
           <td>${esc(reason)}</td>
           <td><span class="badge danger">${count}</span></td>
           <td>${pct(count, total)}%</td>
-          <td>—</td>
         </tr>`
 				)
 			: [
-					`<tr><td colspan="4" style="text-align:center;color:#22C55E;padding:20px;">
+					`<tr><td colspan="3" style="text-align:center;color:#22C55E;padding:20px;">
           <i class="fas fa-check-circle" style="margin-right:6px;"></i>No failures recorded
         </td></tr>`,
 				]
@@ -232,6 +235,69 @@ function groupBy(arr, key) {
 		map[k].push(item);
 		return map;
 	}, {});
+}
+
+function buildAccountIndex(accounts) {
+	const byId = new Map();
+	const byNumber = new Map();
+
+	(accounts || []).forEach((account) => {
+		const label =
+			account.accountHolderName ||
+			account.holderName ||
+			account.name ||
+			account.accountNumber ||
+			"Unknown";
+
+		const id = account.accountId ?? account.id;
+		if (id !== undefined && id !== null) {
+			byId.set(String(id), label);
+		}
+
+		const number = account.accountNumber ?? account.number;
+		if (number !== undefined && number !== null && number !== "") {
+			byNumber.set(String(number), label);
+		}
+	});
+
+	return { byId, byNumber };
+}
+
+function resolvePartyName(payment, role, accountIndex) {
+	if (role === "sender") {
+		const direct = payment.senderName || payment.sourceAccountName;
+		if (direct) return direct;
+
+		const id = payment.sourceAccountId ?? payment.senderAccountId ?? payment.senderId;
+		if (id !== undefined && id !== null) {
+			const mappedById = accountIndex?.byId?.get(String(id));
+			if (mappedById) return mappedById;
+		}
+
+		const number = payment.senderAccount ?? payment.sourceAccountNumber;
+		if (number) {
+			const mappedByNumber = accountIndex?.byNumber?.get(String(number));
+			if (mappedByNumber) return mappedByNumber;
+		}
+		return "—";
+	}
+
+	const direct = payment.receiverName || payment.destinationAccountName;
+	if (direct) return direct;
+
+	const id = payment.destinationAccountId ?? payment.receiverAccountId ?? payment.receiverId;
+	if (id !== undefined && id !== null) {
+		const mappedById = accountIndex?.byId?.get(String(id));
+		if (mappedById) return mappedById;
+	}
+
+	const number = payment.receiverAccount ?? payment.destinationAccountNumber;
+	if (number) {
+		const mappedByNumber = accountIndex?.byNumber?.get(String(number));
+		if (mappedByNumber) return mappedByNumber;
+	}
+
+	return "—";
 }
 
 // Sort map entries by list length descending, return top n
