@@ -143,7 +143,9 @@ function updateReceiversTable(payments, accountIndex) {
 }
 
 function updateLargestTable(payments, accountIndex) {
-	const sorted = [...payments]
+	const sorted = payments
+		.filter((p) => p.status === "COMPLETED")
+		.slice()
 		.sort((a, b) => b.amount - a.amount)
 		.slice(0, 10);
 
