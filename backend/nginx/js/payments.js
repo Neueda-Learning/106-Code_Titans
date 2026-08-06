@@ -38,7 +38,7 @@ function getStatusClass(status) {
 	const map = {
 		COMPLETED: "status-completed",
 		FAILED: "status-failed",
-		PENDING: "status-pending",
+		PENDING: "status-created",
 		CREATED: "status-created",
 		VALIDATED: "status-validated",
 		SENT: "status-sent"
@@ -184,6 +184,11 @@ function normalizeStatus(status) {
 	return String(status || "").trim().toUpperCase();
 }
 
+function displayStatus(status) {
+	const normalized = normalizeStatus(status);
+	return normalized === "PENDING" ? "CREATED" : normalized;
+}
+
 function isTerminalStatus(status) {
 	const normalized = normalizeStatus(status);
 	return normalized === "COMPLETED" || normalized === "FAILED";
@@ -272,7 +277,7 @@ async function initializePaymentsPage() {
 			const receiver = resolvePaymentParty(payment, "destination", accountMap);
 			const amount = resolveField(payment, ["amount"], "--");
 			const currency = resolveField(payment, ["currency"], "--");
-			const status = resolveField(payment, ["status"], "CREATED");
+			const status = displayStatus(resolveField(payment, ["status"], "CREATED"));
 			const createdAt = resolveField(payment, ["createdAt", "createdDate", "createdOn"], "--");
 			const reference = resolveField(payment, ["reference"], "--");
 
@@ -527,7 +532,7 @@ function updateLifecycleCard(payment, isProcessing) {
 
 	card.hidden = false;
 
-	const status = normalizeStatus(resolveField(payment, ["status"], "CREATED"));
+	const status = displayStatus(resolveField(payment, ["status"], "CREATED"));
 	const scenario = resolveField(payment, ["_simulationMode"], "AUTO_SUCCESS");
 
 	if (isProcessing) {

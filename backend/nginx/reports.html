@@ -255,21 +255,6 @@
         </div>
       </div>
 
-      <div class="summary-card pending">
-        <div class="card-header">
-          <h3>Pending</h3>
-          <i class="fas fa-clock"></i>
-        </div>
-        <div class="card-value">
-          <div class="value" id="pending-count">336</div>
-          <div class="unit" id="pending-unit">2.7% in progress</div>
-        </div>
-        <div class="card-footer">
-          <span class="stat-warning">
-            <i class="fas fa-hourglass-half"></i> Processing
-          </span>
-        </div>
-      </div>
     </div>
 
     <!-- Charts Section - FIXED LAYOUT -->
@@ -476,7 +461,7 @@
                 <td>Digital Ventures</td>
                 <td>Commerce Platform</td>
                 <td class="amount">$1,450,000</td>
-                <td><span class="status-badge pending">Pending</span></td>
+                <td><span class="status-badge created">Created</span></td>
                 <td>Aug 5, 2026</td>
               </tr>
               <tr>
@@ -516,7 +501,7 @@
                 <td>Digital Ventures</td>
                 <td>Commerce Platform</td>
                 <td class="amount">$650,000</td>
-                <td><span class="status-badge pending">Pending</span></td>
+                <td><span class="status-badge created">Created</span></td>
                 <td>Aug 3, 2026</td>
               </tr>
               <tr>
@@ -633,11 +618,11 @@
       new Chart(statusCtx, {
         type: 'doughnut',
         data: {
-          labels: ['Completed', 'Failed', 'Pending'],
+          labels: ['Completed', 'Failed'],
           datasets: [{
-            data: [11230, 892, 336],
-            backgroundColor: ['#22C55E', '#EF4444', '#F59E0B'],
-            borderColor: ['#16A34A', '#DC2626', '#D97706'],
+            data: [11230, 892],
+            backgroundColor: ['#22C55E', '#EF4444'],
+            borderColor: ['#16A34A', '#DC2626'],
             borderWidth: 2
           }]
         },

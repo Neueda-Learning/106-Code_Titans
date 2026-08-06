@@ -37,32 +37,27 @@ function computeStats(payments) {
 	const total = payments.length;
 	const completed = payments.filter((p) => p.status === "COMPLETED").length;
 	const failed = payments.filter((p) => p.status === "FAILED").length;
-	const pending = payments.filter(
-		(p) => p.status === "PENDING" || p.status === "CREATED"
-	).length;
-	return { total, completed, failed, pending };
+	return { total, completed, failed };
 }
 
 // ─── Summary Cards ─────────────────────────────────────────────────────────
 
-function updateSummaryCards({ total, completed, failed, pending }) {
+function updateSummaryCards({ total, completed, failed }) {
 	setText("total-count", total.toLocaleString());
 	setText("total-unit", "transactions");
 	setText("completed-count", completed.toLocaleString());
 	setText("completed-unit", pct(completed, total) + "% success rate");
 	setText("failed-count", failed.toLocaleString());
 	setText("failed-unit", pct(failed, total) + "% failure rate");
-	setText("pending-count", pending.toLocaleString());
-	setText("pending-unit", pct(pending, total) + "% in progress");
 }
 
 // ─── Charts ────────────────────────────────────────────────────────────────
 
 // Update the doughnut chart in-place (no destroy/recreate)
-function updateStatusChart({ completed, failed, pending }) {
+function updateStatusChart({ completed, failed }) {
 	const chart = getChartInstance("statusChart");
 	if (!chart) return;
-	chart.data.datasets[0].data = [completed, failed, pending];
+	chart.data.datasets[0].data = [completed, failed];
 	chart.update();
 }
 
@@ -412,15 +407,16 @@ function rankBadge(i) {
 }
 
 function statusBadge(status) {
+	const display = status === "PENDING" ? "CREATED" : status;
 	const map = {
 		COMPLETED: "completed",
 		FAILED: "failed",
-		PENDING: "pending",
+		PENDING: "created",
 		CREATED: "created",
 	};
-	const cls = map[status] || "created";
-	const label = status
-		? status.charAt(0) + status.slice(1).toLowerCase()
+	const cls = map[display] || "created";
+	const label = display
+		? display.charAt(0) + display.slice(1).toLowerCase()
 		: "—";
 	return `<span class="status-badge ${cls}">${label}</span>`;
 }
