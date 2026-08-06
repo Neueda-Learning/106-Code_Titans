@@ -241,6 +241,10 @@ async function initializePaymentsPage() {
 	const createPaymentPanel = document.getElementById("createPaymentPanel");
 	const createPaymentForm = document.getElementById("createPaymentForm");
 	const createPaymentSubmitButton = document.getElementById("createPaymentSubmitBtn");
+	const createPaymentProgress = document.getElementById("createPaymentProgress");
+	const createPaymentProgressLabel = document.getElementById("createPaymentProgressLabel");
+	const createPaymentProgressPercent = document.getElementById("createPaymentProgressPercent");
+	const createPaymentProgressFill = document.getElementById("createPaymentProgressFill");
 	const sourceAccountSelect = document.getElementById("sourceAccountId");
 	const destinationAccountSelect = document.getElementById("destinationAccountId");
 	let createPanelOpen = false;
@@ -384,9 +388,75 @@ async function initializePaymentsPage() {
 		clearCreatePaymentMessage();
 	}
 
+	function getLifecycleProgressPercent(status, failureStage = "") {
+		const normalized = normalizeStatus(status);
+		if (normalized === "CREATED") return 25;
+		if (normalized === "VALIDATED") return 50;
+		if (normalized === "SENT") return 75;
+		if (normalized === "COMPLETED") return 100;
+		if (normalized === "FAILED") {
+			const failedAt = normalizeStatus(failureStage);
+			if (failedAt === "COMPLETION") return 100;
+			if (failedAt === "SENT") return 75;
+			if (failedAt === "VALIDATED") return 50;
+			return 25;
+		}
+		return 0;
+	}
+
+	function updateCreatePaymentProgress(status, options = {}) {
+		if (!createPaymentProgress || !createPaymentProgressFill || !createPaymentProgressLabel || !createPaymentProgressPercent) {
+			return;
+		}
+
+		const normalized = normalizeStatus(status || "CREATED");
+		const percent = Math.min(100, Math.max(0, getLifecycleProgressPercent(normalized, options.failureStage)));
+		const isFailed = normalized === "FAILED";
+		const isCompleted = normalized === "COMPLETED";
+		const isProcessing = options.isProcessing === true;
+
+		createPaymentProgress.hidden = false;
+		createPaymentProgressFill.style.width = `${percent}%`;
+		createPaymentProgressPercent.textContent = `${percent}%`;
+		createPaymentProgress.dataset.state = isFailed ? "failed" : (isCompleted ? "completed" : "processing");
+
+		if (options.label) {
+			createPaymentProgressLabel.textContent = options.label;
+		} else if (isFailed) {
+			createPaymentProgressLabel.textContent = options.errorMessage || "Payment failed during processing.";
+		} else if (isCompleted) {
+			createPaymentProgressLabel.textContent = "Payment completed successfully.";
+		} else if (isProcessing) {
+			createPaymentProgressLabel.textContent = `Payment is in ${displayStatus(normalized)} stage...`;
+		} else {
+			createPaymentProgressLabel.textContent = `Payment is at ${displayStatus(normalized)} stage.`;
+		}
+
+		const track = createPaymentProgress.querySelector(".create-progress-track");
+		if (track) {
+			track.setAttribute("aria-valuenow", String(percent));
+		}
+	}
+
+	function resetCreatePaymentProgress() {
+		if (!createPaymentProgress || !createPaymentProgressFill || !createPaymentProgressLabel || !createPaymentProgressPercent) {
+			return;
+		}
+		createPaymentProgress.hidden = true;
+		createPaymentProgressFill.style.width = "0%";
+		createPaymentProgressPercent.textContent = "0%";
+		createPaymentProgressLabel.textContent = "Processing payment...";
+		delete createPaymentProgress.dataset.state;
+		const track = createPaymentProgress.querySelector(".create-progress-track");
+		if (track) {
+			track.setAttribute("aria-valuenow", "0");
+		}
+	}
+
 	async function handleCreatePaymentSubmit(event) {
 		event.preventDefault();
 		clearCreatePaymentMessage();
+		resetCreatePaymentProgress();
 
 		if (createPaymentSubmitButton) {
 			createPaymentSubmitButton.disabled = true;
@@ -416,15 +486,38 @@ async function initializePaymentsPage() {
 			});
 			const paymentId = createdPayment?.paymentId || createdPayment?.id;
 			const status = normalizeStatus(createdPayment?.status || "CREATED");
+			const startedInTerminal = isTerminalStatus(status);
+			updateCreatePaymentProgress(status, {
+				isProcessing: !startedInTerminal,
+				label: startedInTerminal ? undefined : "Payment created. Starting lifecycle processing..."
+			});
+
+			let finalPayment = createdPayment;
+			if (!startedInTerminal && paymentId) {
+				finalPayment = await drivePaymentLifecycle(paymentId, (paymentSnapshot, processing) => {
+					updateCreatePaymentProgress(paymentSnapshot?.status, {
+						isProcessing: processing,
+						failureStage: paymentSnapshot?.failureStage,
+						errorMessage: paymentSnapshot?.errorMessage
+					});
+				});
+			}
+
+			const finalStatus = normalizeStatus(finalPayment?.status || status);
+			updateCreatePaymentProgress(finalStatus, {
+				isProcessing: false,
+				failureStage: finalPayment?.failureStage,
+				errorMessage: finalPayment?.errorMessage
+			});
 
 			showCreatePaymentMessage(
-				status === "FAILED" ? "error" : "success",
-				status === "FAILED"
-					? `Payment ${paymentId} failed validation. Opening details page...`
-					: `Payment ${paymentId} created successfully. Opening lifecycle view...`
+				finalStatus === "FAILED" ? "error" : "success",
+				finalStatus === "FAILED"
+					? `Payment ${paymentId} failed during processing.`
+					: `Payment ${paymentId} completed successfully.`
 			);
 
-			resetCreateFormState();
+			createPaymentForm?.reset();
 			setCreatePanelVisible(true);
 			await loadPaymentsData();
 
@@ -649,12 +742,20 @@ function getSimulationOutcome(payment) {
 	};
 }
 
-async function drivePaymentLifecycle(paymentId) {
+async function drivePaymentLifecycle(paymentId, onProgress = null) {
+	function emitProgress(payment, isProcessing) {
+		if (typeof onProgress === "function") {
+			onProgress(payment, isProcessing);
+		}
+	}
+
 	let payment = await getPaymentById(paymentId);
 	updateLifecycleCard(payment, true);
+	emitProgress(payment, true);
 
 	if (isTerminalStatus(payment.status)) {
 		updateLifecycleCard(payment, false);
+		emitProgress(payment, false);
 		return payment;
 	}
 
@@ -665,6 +766,7 @@ async function drivePaymentLifecycle(paymentId) {
 			remarks: "Validation checks passed."
 		});
 		updateLifecycleCard(payment, true);
+		emitProgress(payment, true);
 	}
 
 	if (normalizeStatus(payment.status) === "VALIDATED") {
@@ -674,6 +776,7 @@ async function drivePaymentLifecycle(paymentId) {
 			remarks: "Payment sent to gateway for settlement."
 		});
 		updateLifecycleCard(payment, true);
+		emitProgress(payment, true);
 	}
 
 	if (normalizeStatus(payment.status) === "SENT") {
@@ -687,9 +790,11 @@ async function drivePaymentLifecycle(paymentId) {
 			failureStage: outcome.failureStage,
 			retryable: outcome.retryable
 		});
+		emitProgress(payment, false);
 	}
 
 	updateLifecycleCard(payment, false);
+	emitProgress(payment, false);
 	return payment;
 }
 

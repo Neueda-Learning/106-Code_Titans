@@ -1,200 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Payment Processing System - Payments</title>
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/payments.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Processing System - Payments</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/payments.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="header-nav-container"></div>
+<div id="header-nav-container"></div>
 
-  <main class="main-content">
+<main class="main-content">
     <section class="payments-page" aria-labelledby="paymentsPageTitle">
-      <header class="payments-hero card">
-        <div class="hero-copy">
-          <p class="eyebrow">Payment Operations</p>
-          <h1 id="paymentsPageTitle">Payments</h1>
-          <p class="hero-description">Monitor live transactions, find records quickly, and drill into payment lifecycle details.</p>
-        </div>
-        <div class="hero-actions">
-          <button id="toggleCreatePaymentBtn" type="button" class="btn btn-success" aria-controls="createPaymentPanel" aria-expanded="false">
-            <i class="fas fa-circle-plus" aria-hidden="true"></i>
-            Create Payment
-          </button>
-          <a href="payment_details.html" class="btn btn-secondary" aria-label="Open payment details page">
-            <i class="fas fa-receipt" aria-hidden="true"></i>
-            Payment Details
-          </a>
-          <button id="refreshPaymentsBtn" type="button" class="btn btn-primary" aria-label="Refresh payments list">
-            <i class="fas fa-rotate-right" aria-hidden="true"></i>
-            Refresh
-          </button>
-        </div>
-      </header>
+        <header class="payments-hero card">
+            <div class="hero-copy">
+                <p class="eyebrow">Payment Operations</p>
+                <h1 id="paymentsPageTitle">Payments</h1>
+                <p class="hero-description">Monitor live transactions, find records quickly, and drill into payment lifecycle details.</p>
+            </div>
+            <div class="hero-actions">
+                <button id="toggleCreatePaymentBtn" type="button" class="btn btn-success" aria-controls="createPaymentPanel" aria-expanded="false">
+                    <i class="fas fa-circle-plus" aria-hidden="true"></i>
+                    Create Payment
+                </button>
+                <a href="payment_details.html" class="btn btn-secondary" aria-label="Open payment details page">
+                    <i class="fas fa-receipt" aria-hidden="true"></i>
+                    Payment Details
+                </a>
+                <button id="refreshPaymentsBtn" type="button" class="btn btn-primary" aria-label="Refresh payments list">
+                    <i class="fas fa-rotate-right" aria-hidden="true"></i>
+                    Refresh
+                </button>
+            </div>
+        </header>
 
-      <section class="payments-kpi-grid" aria-label="Payment snapshot">
-        <article class="kpi-card card" aria-labelledby="kpiTotalLabel">
-          <p id="kpiTotalLabel" class="kpi-label">Total</p>
-          <p id="kpiTotalPayments" class="kpi-value">0</p>
-        </article>
-        <article class="kpi-card card" aria-labelledby="kpiCompletedLabel">
-          <p id="kpiCompletedLabel" class="kpi-label">Completed</p>
-          <p id="kpiCompletedPayments" class="kpi-value">0</p>
-        </article>
-        <article class="kpi-card card" aria-labelledby="kpiFailedLabel">
-          <p id="kpiFailedLabel" class="kpi-label">Failed</p>
-          <p id="kpiFailedPayments" class="kpi-value">0</p>
-        </article>
-      </section>
+        <section class="payments-kpi-grid" aria-label="Payment snapshot">
+            <article class="kpi-card card" aria-labelledby="kpiTotalLabel">
+                <p id="kpiTotalLabel" class="kpi-label">Total</p>
+                <p id="kpiTotalPayments" class="kpi-value">0</p>
+            </article>
+            <article class="kpi-card card" aria-labelledby="kpiCompletedLabel">
+                <p id="kpiCompletedLabel" class="kpi-label">Completed</p>
+                <p id="kpiCompletedPayments" class="kpi-value">0</p>
+            </article>
+            <article class="kpi-card card" aria-labelledby="kpiFailedLabel">
+                <p id="kpiFailedLabel" class="kpi-label">Failed</p>
+                <p id="kpiFailedPayments" class="kpi-value">0</p>
+            </article>
+        </section>
 
-      <section id="payments-controls" class="payments-controls card" aria-label="Payment filters">
-        <div class="control-group control-search">
-          <label for="paymentIdSearch">Search Payment ID</label>
-          <div class="input-with-icon">
-            <i class="fas fa-search" aria-hidden="true"></i>
-            <input
-              type="text"
-              id="paymentIdSearch"
-              name="paymentIdSearch"
-              placeholder="Try: PAY-100045"
-              autocomplete="off"
-            >
-          </div>
-        </div>
+        <section id="payments-controls" class="payments-controls card" aria-label="Payment filters">
+            <div class="control-group control-search">
+                <label for="paymentIdSearch">Search Payment ID</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input
+                            type="text"
+                            id="paymentIdSearch"
+                            name="paymentIdSearch"
+                            placeholder="Enter payment ID"
+                            autocomplete="off"
+                    >
+                </div>
+            </div>
 
-        <div class="control-group control-status">
-          <label for="statusFilter">Status</label>
-          <select id="statusFilter" name="statusFilter" aria-label="Filter by payment status">
-            <option value="ALL">All</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="FAILED">Failed</option>
-          </select>
-        </div>
-      </section>
+            <div class="control-group control-status">
+                <label for="statusFilter">Status</label>
+                <select id="statusFilter" name="statusFilter" aria-label="Filter by payment status">
+                    <option value="ALL">All</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="FAILED">Failed</option>
+                </select>
+            </div>
+        </section>
 
-      <section class="payments-meta" aria-live="polite" aria-atomic="true">
-        <p id="paymentsCount">0 payments found</p>
-      </section>
+        <section class="payments-meta" aria-live="polite" aria-atomic="true">
+            <p id="paymentsCount">0 payments found</p>
+        </section>
 
-      <section id="createPaymentPanel" class="create-payment-panel card" hidden>
-        <div class="create-payment-header">
-          <div>
-            <p class="eyebrow eyebrow-dark">New Transaction</p>
-            <h2>Create Payment</h2>
-            <p>Add a new transaction here. After saving, the payment will be available in Payments and Payment Details.</p>
-          </div>
-          <button id="closeCreatePaymentBtn" type="button" class="panel-close-btn" aria-label="Close create payment form">
-            <i class="fas fa-xmark" aria-hidden="true"></i>
-          </button>
-        </div>
+        <section id="createPaymentPanel" class="create-payment-panel card" hidden>
+            <div class="create-payment-header">
+                <div>
+                    <p class="eyebrow eyebrow-dark">New Transaction</p>
+                    <h2>Create Payment</h2>
+                    <p>Add a new transaction here. After saving, the payment will be available in Payments and Payment Details.</p>
+                </div>
+                <button id="closeCreatePaymentBtn" type="button" class="panel-close-btn" aria-label="Close create payment form">
+                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
 
-        <form id="createPaymentForm" class="create-payment-form" novalidate>
-          <div class="form-field">
-            <label for="sourceAccountId">Sender Account</label>
-            <select id="sourceAccountId" name="sourceAccountId" required>
-              <option value="">Select sender account</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="destinationAccountId">Receiver Account</label>
-            <select id="destinationAccountId" name="destinationAccountId" required>
-              <option value="">Select receiver account</option>
-            </select>
-          </div>
+            <form id="createPaymentForm" class="create-payment-form" novalidate>
+                <div class="form-field">
+                    <label for="sourceAccountId">Sender Account</label>
+                    <select id="sourceAccountId" name="sourceAccountId" required>
+                        <option value="">Select sender account</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="destinationAccountId">Receiver Account</label>
+                    <select id="destinationAccountId" name="destinationAccountId" required>
+                        <option value="">Select receiver account</option>
+                    </select>
+                </div>
 
-          <div class="form-field">
-            <label for="amount">Amount</label>
-            <input id="amount" name="amount" type="number" min="0.01" step="0.01" placeholder="1500.00" required>
-          </div>
-          <div class="form-field">
-            <label for="currency">Currency</label>
-            <select id="currency" name="currency" required>
-              <option value="">Select currency</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="GBP">GBP</option>
-              <option value="AED">AED</option>
-              <option value="INR">INR</option>
-              <option value="SGD">SGD</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="reference">Reference</label>
-            <input id="reference" name="reference" type="text" placeholder="Invoice settlement" required>
-          </div>
+                <div class="form-field">
+                    <label for="amount">Amount</label>
+                    <input id="amount" name="amount" type="number" min="0.01" step="0.01" placeholder="1500.00" required>
+                </div>
+                <div class="form-field">
+                    <label for="currency">Currency</label>
+                    <select id="currency" name="currency" required>
+                        <option value="">Select currency</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="AED">AED</option>
+                        <option value="INR">INR</option>
+                        <option value="SGD">SGD</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="reference">Reference</label>
+                    <input id="reference" name="reference" type="text" placeholder="Invoice settlement" required>
+                </div>
 
-          <div class="form-field">
-            <label for="processingScenario">Processing Scenario</label>
-            <select id="processingScenario" name="processingScenario">
-              <option value="AUTO_SUCCESS">Auto Success</option>
-              <option value="NETWORK_FAIL">Gateway Timeout / Network Failure</option>
-              <option value="BANK_FAIL">Bank Rejection</option>
-            </select>
-          </div>
+                <div class="form-field">
+                    <label for="processingScenario">Processing Scenario</label>
+                    <select id="processingScenario" name="processingScenario">
+                        <option value="AUTO_SUCCESS">Auto Success</option>
+                        <option value="NETWORK_FAIL">Gateway Timeout / Network Failure</option>
+                        <option value="BANK_FAIL">Bank Rejection</option>
+                    </select>
+                </div>
 
-          <div class="form-field form-span-2">
-            <p class="create-payment-help">
-              The payment is first created in the backend, then this demo page will drive it through
-              <strong> CREATED → VALIDATED → SENT → COMPLETED</strong>
-              or move it to <strong>FAILED</strong> based on the selected scenario.
-            </p>
-          </div>
+                <div class="form-field form-span-2">
+                    <p class="create-payment-help">
+                        The payment is first created in the backend, then this demo page will drive it through
+                        <strong> CREATED → VALIDATED → SENT → COMPLETED</strong>
+                        or move it to <strong>FAILED</strong> based on the selected scenario.
+                    </p>
+                </div>
 
-          <div class="form-actions">
-            <p id="createPaymentMessage" class="form-message" hidden></p>
-            <button id="createPaymentSubmitBtn" type="submit" class="create-btn">
-              <i class="fas fa-plus" aria-hidden="true"></i>
-              Create Payment
-            </button>
-          </div>
-        </form>
-      </section>
+                <div class="form-actions">
+                    <p id="createPaymentMessage" class="form-message" hidden></p>
+                    <button id="createPaymentSubmitBtn" type="submit" class="create-btn">
+                        <i class="fas fa-plus" aria-hidden="true"></i>
+                        Create Payment
+                    </button>
+                </div>
 
-      <section id="paymentsLoading" class="card state-block" aria-live="polite">
-        <p><i class="fas fa-spinner" aria-hidden="true"></i> Loading payments...</p>
-      </section>
+                <div id="createPaymentProgress" class="create-progress" hidden aria-live="polite" aria-atomic="true">
+                    <div class="create-progress-head">
+                        <p id="createPaymentProgressLabel" class="create-progress-label">Processing payment...</p>
+                        <span id="createPaymentProgressPercent" class="create-progress-percent">0%</span>
+                    </div>
+                    <div class="create-progress-track" role="progressbar" aria-label="Payment progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div id="createPaymentProgressFill" class="create-progress-fill"></div>
+                    </div>
+                </div>
+            </form>
+        </section>
 
-      <section id="paymentsError" class="card state-block" hidden>
-        <p><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Unable to load payments. Please try again.</p>
-      </section>
+        <section id="paymentsLoading" class="card state-block" aria-live="polite">
+            <p><i class="fas fa-spinner" aria-hidden="true"></i> Loading payments...</p>
+        </section>
 
-      <section id="payments-table-section" class="payments-table-section card" hidden>
-        <div class="table-toolbar">
-          <h2>Payment Records</h2>
-          <p>Use the View action to inspect the full lifecycle for a payment.</p>
-        </div>
-        <div class="table-wrapper">
-          <table id="paymentsTable" class="payments-table">
-            <caption class="visually-hidden">Payment list with sender, receiver, amount, status and created date</caption>
-            <thead>
-              <tr>
-                <th scope="col">Payment ID</th>
-                <th scope="col">Sender</th>
-                <th scope="col">Receiver</th>
-                <th scope="col">Amount</th>
-                <th scope="col">Currency</th>
-                <th scope="col">Status</th>
-                <th scope="col">Created Date</th>
-                <th scope="col">Action</th>
-              </tr>
-            </thead>
-            <tbody id="paymentsTableBody"></tbody>
-          </table>
-        </div>
-      </section>
+        <section id="paymentsError" class="card state-block" hidden>
+            <p><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Unable to load payments. Please try again.</p>
+        </section>
 
-      <section id="paymentsEmpty" class="card state-block" hidden>
-        <p><i class="fas fa-circle-info" aria-hidden="true"></i> No payments match the selected filters.</p>
-      </section>
+        <section id="payments-table-section" class="payments-table-section card" hidden>
+            <div class="table-toolbar">
+                <h2>Payment Records</h2>
+                <p>Use the View action to inspect the full lifecycle for a payment.</p>
+            </div>
+            <div class="table-wrapper">
+                <table id="paymentsTable" class="payments-table">
+                    <caption class="visually-hidden">Payment list with sender, receiver, amount, status and created date</caption>
+                    <thead>
+                    <tr>
+                        <th scope="col">Payment ID</th>
+                        <th scope="col">Sender</th>
+                        <th scope="col">Receiver</th>
+                        <th scope="col">Amount</th>
+                        <th scope="col">Currency</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Created Date</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody id="paymentsTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="paymentsEmpty" class="card state-block" hidden>
+            <p><i class="fas fa-circle-info" aria-hidden="true"></i> No payments match the selected filters.</p>
+        </section>
     </section>
-  </main>
+</main>
 
-  <script src="js/api.js"></script>
-  <script src="js/common.js"></script>
-  <script src="js/payments.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/payments.js"></script>
 </body>
 </html>
