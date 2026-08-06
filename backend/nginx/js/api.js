@@ -1,4 +1,4 @@
-const API_BASE_URL = window.API_BASE_URL || "http://10.9.73.140:8082";
+const API_BASE_URL = window.API_BASE_URL || `http://${window.location.hostname}:8082`;
 const LOCAL_PAYMENTS_KEY = "pps_created_payments";
 
 async function parseApiResponse(response) {

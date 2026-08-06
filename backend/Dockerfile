@@ -1,35 +1,20 @@
-FROM maven:3.9.9-eclipse-temurin-17 AS backend-builder
+# ---------- Build Stage ----------
+FROM maven:3.9.9-eclipse-temurin-21 AS builder
+
 WORKDIR /app
 
-COPY pom.xml ./
-RUN mvn dependency:go-offline -B
-
+COPY pom.xml .
 COPY src ./src
-COPY mvnw ./mvnw
-COPY mvnw.cmd ./mvnw.cmd
-RUN mvn clean package -DskipTests -B
 
+RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:17-jre-alpine AS backend
+# ----------- Runtime Stage ----------
+FROM eclipse-temurin:21-jre
+
 WORKDIR /app
 
-RUN apk add --no-cache wget
-RUN addgroup -S code-titans && adduser -S code-titans -G code-titans
+COPY --from=builder /app/target/*.jar app.jar
 
-COPY --from=backend-builder /app/target/*.jar app.jar
-RUN chown code-titans:code-titans app.jar
-
-USER code-titans
 EXPOSE 8082
 
-
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
-
-
-FROM nginx:alpine AS frontend
-RUN apk add --no-cache wget
-COPY nginx /usr/share/nginx/html
-EXPOSE 80
-
-
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["java","-jar","app.jar"]
