@@ -35,6 +35,9 @@ services:
     ports:
       - "8082:8082"
 
+    volumes:
+      - app-logs:/app/logs
+
     networks:
       - springboot-network
   nginx:
@@ -50,6 +53,7 @@ services:
       - springboot-network
 volumes:
   mysql-data:
+  app-logs:
 
 networks:
   springboot-network:

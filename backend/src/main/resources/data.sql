@@ -3,6 +3,10 @@ DELETE FROM payment_history;
 DELETE FROM payments;
 DELETE FROM accounts;
 
+ALTER TABLE accounts AUTO_INCREMENT = 1;
+ALTER TABLE payments AUTO_INCREMENT = 1;
+ALTER TABLE payment_history AUTO_INCREMENT = 1;
+
 INSERT INTO accounts (account_number, account_holder_name, bank_name, balance, currency, account_status) VALUES
 ('ACC100001', 'Alice Johnson', 'City Bank', 12000.00, 'USD', 'ACTIVE'),
 ('ACC100002', 'Bob Smith', 'Global Trust', 8450.25, 'USD', 'ACTIVE'),
