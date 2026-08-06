@@ -520,6 +520,10 @@ async function initializePaymentsPage() {
 			createPaymentForm?.reset();
 			setCreatePanelVisible(true);
 			await loadPaymentsData();
+
+			window.setTimeout(() => {
+				window.location.href = `payment_details.html?id=${encodeURIComponent(paymentId)}&autoProcess=1`;
+			}, 900);
 		} catch (error) {
 			console.error("Create payment failed:", error);
 			showCreatePaymentMessage("error", error.message || "Unable to create payment right now. Please try again.");
