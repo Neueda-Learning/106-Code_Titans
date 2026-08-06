@@ -119,6 +119,10 @@ public class PaymentService {
                     "Invalid status transition: " + currentStatus + " -> " + normalizedNewStatus);
         }
 
+        if (isSettlementTransition(currentStatus, normalizedNewStatus)) {
+            settleAccountsForPayment(payment);
+        }
+
         payment.setStatus(normalizedNewStatus);
         Payments updatedPayment = paymentRepo.save(payment);
         auditService.recordStatusChange(paymentId, currentStatus, normalizedNewStatus, changedBy, remarks);
@@ -238,6 +242,42 @@ public class PaymentService {
 
     private String normalizeCurrency(String currency) {
         return currency == null ? null : currency.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private boolean isSettlementTransition(String currentStatus, String newStatus) {
+        return !"COMPLETED".equals(currentStatus) && "COMPLETED".equals(newStatus);
+    }
+
+    private void settleAccountsForPayment(Payments payment) {
+        Long sourceAccountId = payment.getSourceAccountId();
+        Long destinationAccountId = payment.getDestinationAccountId();
+        BigDecimal amount = payment.getAmount();
+
+        if (sourceAccountId == null || destinationAccountId == null || amount == null) {
+            throw new IllegalArgumentException("Payment is missing settlement details.");
+        }
+
+        Accounts sourceAccount = accountRepo.findById(sourceAccountId)
+                .orElseThrow(() -> new IllegalArgumentException("Source account does not exist"));
+        Accounts destinationAccount = accountRepo.findById(destinationAccountId)
+                .orElseThrow(() -> new IllegalArgumentException("Destination account does not exist"));
+
+        if (sourceAccount.getBalance() == null || sourceAccount.getBalance().compareTo(amount) < 0) {
+            throw new IllegalArgumentException("Source account has insufficient balance");
+        }
+
+        BigDecimal sourceNextBalance = sourceAccount.getBalance().subtract(amount);
+        BigDecimal destinationCurrent = destinationAccount.getBalance() == null
+                ? BigDecimal.ZERO
+                : destinationAccount.getBalance();
+        BigDecimal destinationNextBalance = destinationCurrent.add(amount);
+
+        int sourceUpdated = accountRepo.updateBalance(sourceAccountId, sourceNextBalance);
+        int destinationUpdated = accountRepo.updateBalance(destinationAccountId, destinationNextBalance);
+
+        if (sourceUpdated != 1 || destinationUpdated != 1) {
+            throw new IllegalStateException("Failed to update account balances for settlement.");
+        }
     }
 
     /**

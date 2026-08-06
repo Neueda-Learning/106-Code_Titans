@@ -88,6 +88,12 @@ public class AccountRepo {
         return account;
     }
 
+    // Update account balance by account ID
+    public int updateBalance(Long accountId, java.math.BigDecimal newBalance) {
+        String sql = "UPDATE accounts SET balance = ? WHERE account_id = ?";
+        return jdbcTemplate.update(sql, newBalance, accountId);
+    }
+
     private RowMapper<Accounts> accountRowMapper() {
         return (ResultSet rs, int rowNum) -> {
             Accounts account = new Accounts();
