@@ -52,7 +52,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "wget -qO- http://10.9.74.186:8082/actuator/health || exit 1",
+          "wget -qO- http://localhost:8082/actuator/health || exit 1",
         ]
       interval: 30s
       timeout: 10s
