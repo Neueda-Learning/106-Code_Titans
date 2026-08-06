@@ -20,8 +20,8 @@ async function loadReportsData() {
 		updateStatusChart(stats);
 		updateDailyChart(payments);
 		updateHourlyChart(payments);
-		updateSendersTable(payments);
-		updateReceiversTable(payments);
+		updateSendersTable(payments, accountIndex);
+		updateReceiversTable(payments, accountIndex);
 		updateLargestTable(payments, accountIndex);
 		updateFailureTable(payments);
 	} catch (err) {
@@ -108,8 +108,8 @@ function updateHourlyChart(payments) {
 
 // ─── Tables ────────────────────────────────────────────────────────────────
 
-function updateSendersTable(payments) {
-	const map = groupBy(payments, "senderName");
+function updateSendersTable(payments, accountIndex) {
+	const map = groupByResolvedParty(payments, "sender", accountIndex);
 	const rows = topN(map, 5);
 	setTableRows(
 		"senders-tbody",
@@ -125,8 +125,8 @@ function updateSendersTable(payments) {
 	);
 }
 
-function updateReceiversTable(payments) {
-	const map = groupBy(payments, "receiverName");
+function updateReceiversTable(payments, accountIndex) {
+	const map = groupByResolvedParty(payments, "receiver", accountIndex);
 	const rows = topN(map, 5);
 	setTableRows(
 		"receivers-tbody",
@@ -237,6 +237,16 @@ function groupBy(arr, key) {
 	}, {});
 }
 
+function groupByResolvedParty(payments, role, accountIndex) {
+	return (payments || []).reduce((map, payment) => {
+		const resolved = resolvePartyName(payment, role, accountIndex);
+		const key = resolved && resolved !== "—" ? resolved : "Unknown";
+		if (!map[key]) map[key] = [];
+		map[key].push(payment);
+		return map;
+	}, {});
+}
+
 function buildAccountIndex(accounts) {
 	const byId = new Map();
 	const byNumber = new Map();
@@ -278,7 +288,13 @@ function resolvePartyName(payment, role, accountIndex) {
 		if (number) {
 			const mappedByNumber = accountIndex?.byNumber?.get(String(number));
 			if (mappedByNumber) return mappedByNumber;
+			return `Account ${number}`;
 		}
+
+		if (id !== undefined && id !== null) {
+			return `Account ${id}`;
+		}
+
 		return "—";
 	}
 
@@ -295,6 +311,11 @@ function resolvePartyName(payment, role, accountIndex) {
 	if (number) {
 		const mappedByNumber = accountIndex?.byNumber?.get(String(number));
 		if (mappedByNumber) return mappedByNumber;
+		return `Account ${number}`;
+	}
+
+	if (id !== undefined && id !== null) {
+		return `Account ${id}`;
 	}
 
 	return "—";
