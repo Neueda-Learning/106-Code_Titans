@@ -102,13 +102,46 @@ function updateHourlyChart(payments) {
 	const chart = getChartInstance("hourlyChart");
 	if (!chart) return;
 
-	const buckets = Array(12).fill(0); // index 0 = 00:00–01:59, 1 = 02:00–03:59 …
+	const completedBuckets = Array(12).fill(0); // index 0 = 00:00–01:59, 1 = 02:00–03:59 …
+	const failedBuckets = Array(12).fill(0);
 	payments.forEach((p) => {
 		const h = new Date(p.createdAt).getHours();
-		buckets[Math.floor(h / 2)]++;
+		const idx = Math.floor(h / 2);
+		if (p.status === "COMPLETED") {
+			completedBuckets[idx]++;
+		} else if (p.status === "FAILED") {
+			failedBuckets[idx]++;
+		}
 	});
 
-	chart.data.datasets[0].data = buckets;
+	chart.data.datasets = [
+		{
+			label: "Completed",
+			data: completedBuckets,
+			borderColor: "#22C55E",
+			backgroundColor: "rgba(34, 197, 94, 0.12)",
+			borderWidth: 3,
+			fill: true,
+			tension: 0.35,
+			pointRadius: 4,
+			pointBackgroundColor: "#22C55E",
+			pointBorderColor: "white",
+			pointBorderWidth: 2
+		},
+		{
+			label: "Failed",
+			data: failedBuckets,
+			borderColor: "#EF4444",
+			backgroundColor: "rgba(239, 68, 68, 0.12)",
+			borderWidth: 3,
+			fill: true,
+			tension: 0.35,
+			pointRadius: 4,
+			pointBackgroundColor: "#EF4444",
+			pointBorderColor: "white",
+			pointBorderWidth: 2
+		}
+	];
 	chart.update();
 }
 
