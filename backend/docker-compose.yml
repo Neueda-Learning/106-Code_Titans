@@ -14,20 +14,10 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ./src/main/resources/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+       
     networks:
       - code-titans-network
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD || exit 1",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+     
 
   backend:
     build:
@@ -44,20 +34,22 @@ services:
     ports:
       - "8082:8082"
     depends_on:
-      mysql:
-        condition: service_healthy
+      mysql
+        
     networks:
       - code-titans-network
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget -qO- http://localhost:8082/actuator/health || exit 1",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx-server
+    ports:
+      - "8085:80"
+    depends_on:
+      - backend
+    networks:
+      - code-titans-network
 
 volumes:
   mysql_data:

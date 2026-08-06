@@ -2,10 +2,6 @@ pipeline {
 
     agent any
 
-    options {
-        disableConcurrentBuilds()
-    }
-
     environment {
         GIT_URL = 'https://github.com/Neueda-Learning/106-Code_Titans.git'
         BRANCH = 'main'
@@ -32,7 +28,7 @@ pipeline {
         stage('Stop Existing Containers') {
             steps {
                 dir('backend') {
-                    sh 'docker-compose down -v || true'
+                    sh 'docker-compose down || true'
                 }
             }
         }

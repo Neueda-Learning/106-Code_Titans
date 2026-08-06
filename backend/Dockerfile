@@ -21,17 +21,15 @@ RUN chown code-titans:code-titans app.jar
 
 USER code-titans
 EXPOSE 8082
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-	CMD wget -qO- http://10.9.74.186:8082/actuator/health || exit 1
+
 
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
 
 
-# FROM nginx:alpine AS frontend
-# RUN apk add --no-cache wget
-# COPY nginx /usr/share/nginx/html
-# EXPOSE 80
-# HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-# 	CMD wget -qO- http://localhost:80/ || exit 1
+FROM nginx:alpine AS frontend
+RUN apk add --no-cache wget
+COPY nginx /usr/share/nginx/html
+EXPOSE 80
 
-# CMD ["nginx", "-g", "daemon off;"]
+
+CMD ["nginx", "-g", "daemon off;"]
