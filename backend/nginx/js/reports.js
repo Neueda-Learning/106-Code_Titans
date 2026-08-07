@@ -91,6 +91,8 @@ function updateDailyChart(payments) {
 		else if (p.status === "FAILED") failed[idx]++;
 	});
 
+	console.log("Daily Chart data:", {labels, completed, failed});
+
 	chart.data.labels = labels;
 	chart.data.datasets[0].data = completed;
 	chart.data.datasets[1].data = failed;
